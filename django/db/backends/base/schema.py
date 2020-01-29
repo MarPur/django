@@ -152,6 +152,9 @@ class BaseDatabaseSchemaEditor:
         for fields in model._meta.unique_together:
             columns = [model._meta.get_field(field).column for field in fields]
             self.deferred_sql.append(self._create_unique_sql(model, columns))
+
+        # TODO Handle Primary key table constraints
+
         # Create column SQL, add FK deferreds if needed.
         column_sqls = []
         params = []
@@ -246,7 +249,7 @@ class BaseDatabaseSchemaEditor:
         elif not null:
             sql += " NOT NULL"
         # Primary key/unique outputs
-        if field.primary_key:
+        if field.primary_key and not self.connection.features.primary_key_as_table_constraint_only:
             sql += " PRIMARY KEY"
         elif field.unique:
             sql += " UNIQUE"

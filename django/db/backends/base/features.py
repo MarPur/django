@@ -321,6 +321,10 @@ class BaseDatabaseFeatures:
         'swedish_ci': None  # Swedish case-insensitive.
     }
 
+    # Does it support primary key as a constraint only at table level
+    # and not at column level?
+    primary_key_as_table_constraint_only = False
+
     def __init__(self, connection):
         self.connection = connection
 
