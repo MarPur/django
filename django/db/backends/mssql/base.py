@@ -14,18 +14,18 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     vendor = 'mssql'
     display_name = 'MS SQL Server'
 
-    client_class = DatabaseClient
-    features_class = DatabaseFeatures
-    creation_class = DatabaseCreation
-    introspection_class = DatabaseIntrospection
-    ops_class = DatabaseOperations
-
     Database = Database
     SchemaEditorClass = DatabaseSchemaEditor
 
+    client_class = DatabaseClient
+    creation_class = DatabaseCreation
+    features_class = DatabaseFeatures
+    introspection_class = DatabaseIntrospection
+    ops_class = DatabaseOperations
+
     data_types = {
-        'AutoField': 'int, identity(1,1)',
-        'BigAutoField': 'bigint, identity(1,1)',
+        'AutoField': 'int identity(1,1)',
+        'BigAutoField': 'bigint identity(1,1)',
         'BinaryField': 'varbinary(MAX)',
         'BooleanField': 'bit',
         'CharField': 'nvarchar(%(max_length)s)',
@@ -35,8 +35,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'DurationField': 'bigint',
         'FileField': 'nvarchar(%(max_length)s)',
         'FilePathField': 'nvarchar(%(max_length)s)',
-        'FloatField': 'double precision',
-        'IntegerField': 'real',
+        'FloatField': 'real',
+        'IntegerField': 'int',
         'BigIntegerField': 'bigint',
         'GenericIPAddressField': 'varchar(39)',
         'NullBooleanField': 'bit',
