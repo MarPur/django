@@ -10,6 +10,36 @@ from .operations import DatabaseOperations
 from .schema import DatabaseSchemaEditor
 
 
+class CursorWrapper:
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def _format_sql(self, query, args):
+        # PyODBC uses ? instead of %s for parameter placeholders
+        if args:
+            return query % (('?',) * len(args))
+
+        return query
+
+    def execute(self, query, args=None):
+        if args:
+            return self.cursor.execute(self._format_sql(query, args), args)
+        else:
+            return self.cursor.execute(query)
+
+    def executemany(self, query, args):
+        if not args:
+            return
+
+        return self.cursor.executemany(self._format_sql(query, args), args)
+
+    def __getattr__(self, attr):
+        return getattr(self.cursor, attr)
+
+    def __iter__(self):
+        return iter(self.cursor)
+
+
 class DatabaseWrapper(BaseDatabaseWrapper):
     vendor = 'mssql'
     display_name = 'MS SQL Server'
@@ -81,7 +111,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         pass
 
     def create_cursor(self, name=None):
-        return self.connection.cursor()
+        return CursorWrapper(self.connection.cursor())
 
     def _set_autocommit(self, autocommit):
         self.connection.autocommit = autocommit
