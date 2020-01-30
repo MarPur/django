@@ -295,6 +295,9 @@ class BaseDatabaseFeatures:
     # Does the backend support boolean expressions in the SELECT clause?
     supports_boolean_expr_in_select_clause = True
 
+    # Does the ORDER BY need to be specified in order to use limit?
+    requires_order_by_in_limit = False
+
     def __init__(self, connection):
         self.connection = connection
 
