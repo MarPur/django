@@ -13,6 +13,7 @@ from .schema import DatabaseSchemaEditor
 class CursorWrapper:
     def __init__(self, cursor):
         self.cursor = cursor
+        self.alive = True
 
     def _format_sql(self, query, args):
         # PyODBC uses ? instead of %s for parameter placeholders
@@ -31,7 +32,12 @@ class CursorWrapper:
         if not args:
             return
 
-        return self.cursor.executemany(self._format_sql(query, args), args)
+        return self.cursor.executemany(self._format_sql(query, args[0]), args)
+
+    def close(self):
+        if self.alive:
+            self.alive = False
+            self.cursor.close()
 
     def __getattr__(self, attr):
         return getattr(self.cursor, attr)

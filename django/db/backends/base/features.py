@@ -295,10 +295,6 @@ class BaseDatabaseFeatures:
     # Does the backend support boolean expressions in the SELECT clause?
     supports_boolean_expr_in_select_clause = True
 
-    # Does it support primary key as a constraint only at table level
-    # and not at column level?
-    primary_key_as_table_constraint_only = False
-
     def __init__(self, connection):
         self.connection = connection
 
