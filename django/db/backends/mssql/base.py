@@ -1,3 +1,5 @@
+import struct
+
 import pyodbc as Database
 
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -88,6 +90,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'UUIDField': 'char(32)',
     }
 
+    operators = {
+        'exact': '= %s',
+    }
+
     def get_connection_params(self):
         kwargs = {
             'DRIVER': '{ODBC Driver 17 for SQL Server}'''
@@ -111,7 +117,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def get_new_connection(self, conn_params):
         connection_string = ';'.join('{}={}'.format(k, v) for (k, v) in conn_params.items())
 
-        return Database.connect(connection_string)
+        connection = Database.connect(connection_string)
+        connection.add_output_converter(-155, handle_datetimeoffset)
+
+        return connection
 
     def init_connection_state(self):
         pass
@@ -121,3 +130,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _set_autocommit(self, autocommit):
         self.connection.autocommit = autocommit
+
+
+def handle_datetimeoffset(dto_value):
+    # ref: https://github.com/mkleehammer/pyodbc/issues/134#issuecomment-281739794
+    tup = struct.unpack("<6hI2h", dto_value)  # e.g., (2017, 3, 16, 10, 35, 18, 0, -6, 0)
+    tweaked = [tup[i] // 100 if i == 6 else tup[i] for i in range(len(tup))]
+    return "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:07d} {:+03d}:{:02d}".format(*tweaked)

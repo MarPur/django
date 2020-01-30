@@ -14,7 +14,12 @@ class DatabaseOperations(BaseDatabaseOperations):
         a table that has an auto-incrementing ID, return the newly created ID.
         """
 
-        # TODO N.B. The returned ID could belong to another session. Check if we can use SCOPE_IDENTITY() instead
+        # TODO The returned ID could belong to another session. Check if we can use SCOPE_IDENTITY() instead
         result = cursor.execute("SELECT IDENT_CURRENT(%s)", (table_name,)).fetchone()
 
         return result[0]
+
+    def bulk_insert_sql(self, fields, placeholder_rows):
+        placeholder_rows_sql = (", ".join(row) for row in placeholder_rows)
+        values_sql = ", ".join("(%s)" % sql for sql in placeholder_rows_sql)
+        return "VALUES " + values_sql
