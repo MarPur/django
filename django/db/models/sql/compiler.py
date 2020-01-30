@@ -288,6 +288,14 @@ class SQLCompiler:
             self._meta_ordering = ordering
         else:
             ordering = []
+
+        # if the query has limit clause, but no ordering, we need to pick and arbitrary
+        if self.connection.features.requires_order_by_in_limit and not ordering and (
+            self.query.high_mark is not None or self.query.low_mark):
+            ordering = [
+                self.query.model._meta.pk.attname
+            ]
+
         if self.query.standard_ordering:
             asc, desc = ORDER_DIR['ASC']
         else:
@@ -494,20 +502,17 @@ class SQLCompiler:
             params.extend(part)
         return result, params
 
-    def as_sql(self, with_limits=True, with_col_aliases=False):
+    def as_sql(self, with_col_aliases=False):
         """
         Create the SQL for this query. Return the SQL string and list of
         parameters.
-
-        If 'with_limits' is False, any limit/offset information is not included
-        in the query.
         """
         refcounts_before = self.query.alias_refcount.copy()
         try:
             extra_select, order_by, group_by = self.pre_sql_setup()
             for_update_part = None
             # Is a LIMIT/OFFSET clause needed?
-            with_limit_offset = with_limits and (self.query.high_mark is not None or self.query.low_mark)
+            with_limit_offset = self.query.high_mark is not None or self.query.low_mark
             combinator = self.query.combinator
             features = self.connection.features
             if combinator:

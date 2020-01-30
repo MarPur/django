@@ -23,3 +23,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         placeholder_rows_sql = (", ".join(row) for row in placeholder_rows)
         values_sql = ", ".join("(%s)" % sql for sql in placeholder_rows_sql)
         return "VALUES " + values_sql
+
+    def limit_offset_sql(self, low_mark, high_mark):
+        return 'OFFSET {:d} ROWS FETCH FIRST {:d} ROWS ONLY'.format(
+            low_mark, high_mark
+        )

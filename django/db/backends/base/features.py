@@ -324,6 +324,9 @@ class BaseDatabaseFeatures:
     # Does it support primary key as a constraint only at table level
     # and not at column level?
     primary_key_as_table_constraint_only = False
+    
+    # Does the ORDER BY need to be specified in order to use limit?
+    requires_order_by_in_limit = False
 
     def __init__(self, connection):
         self.connection = connection

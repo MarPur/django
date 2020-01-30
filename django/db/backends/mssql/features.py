@@ -2,4 +2,4 @@ from django.db.backends.base.features import BaseDatabaseFeatures
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
-    pass
+    requires_order_by_in_limit = True
