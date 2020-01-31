@@ -1353,20 +1353,21 @@ class SQLInsertCompiler(SQLCompiler):
             if r_sql:
                 result.append(r_sql)
                 params += [self.returning_params]
-            return [(" ".join(result), tuple(chain.from_iterable(params)))]
-
-        if can_bulk:
+            sql_statement = [(" ".join(result), tuple(chain.from_iterable(params)))]
+        elif can_bulk:
             result.append(self.connection.ops.bulk_insert_sql(fields, placeholder_rows))
             if ignore_conflicts_suffix_sql:
                 result.append(ignore_conflicts_suffix_sql)
-            return [(" ".join(result), tuple(p for ps in param_rows for p in ps))]
+            sql_statement = [(" ".join(result), tuple(p for ps in param_rows for p in ps))]
         else:
             if ignore_conflicts_suffix_sql:
                 result.append(ignore_conflicts_suffix_sql)
-            return [
-                (" ".join(result + ["VALUES (%s)" % ", ".join(p)]), vals)
+            sql_statement = [
+                (" ".join(result + ["VALUES (   %s)" % ", ".join(p)]), vals)
                 for p, vals in zip(placeholder_rows, param_rows)
             ]
+
+        return self.connection.ops.wrap_insert_sql(sql_statement, opts.db_table, fields)
 
     def execute_sql(self, returning_fields=None):
         assert not (

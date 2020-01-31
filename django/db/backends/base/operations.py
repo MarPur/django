@@ -689,3 +689,6 @@ class BaseDatabaseOperations:
 
     def ignore_conflicts_suffix_sql(self, ignore_conflicts=None):
         return ''
+
+    def wrap_insert_sql(self, insert_sql, table_name, fields):
+        return insert_sql
