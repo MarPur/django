@@ -5,14 +5,18 @@ from django.db.backends.base.creation import BaseDatabaseCreation
 
 class DatabaseCreation(BaseDatabaseCreation):
 
-    def _use_database(self, cursor, database_name):
-        cursor.execute('USE {}'.format(database_name))
+    def _init_database(self, cursor, database_name):
+        cursor.execute('ALTER DATABASE {0} SET AUTO_CLOSE OFF'.format(database_name))
+        cursor.execute('ALTER DATABASE {0} SET MULTI_USER'.format(database_name))
+
+        cursor.execute('USE {0}'.format(database_name))
 
     def _execute_create_test_db(self, cursor, parameters, keepdb=False):
+        database_name = parameters['dbname']
+
         try:
             super()._execute_create_test_db(cursor, parameters, keepdb)
             # in case we're using the Express edition
-            cursor.execute('ALTER DATABASE {} SET AUTO_CLOSE OFF'.format(parameters['dbname']))
         except Exception as e:
             if e.args[0] != '42000':
                 # All errors except "database already exists" cancel tests.
@@ -23,4 +27,13 @@ class DatabaseCreation(BaseDatabaseCreation):
                 # exists".
                 raise
 
-        self._use_database(cursor, parameters['dbname'])
+        self._init_database(cursor, database_name)
+
+        return database_name
+
+    def _destroy_test_db(self, test_database_name, verbosity):
+        # kick every other session out of the database, so we could safely drop it
+        with self.connection._nodb_connection.cursor() as cursor:
+            cursor.execute('ALTER DATABASE {0} SET SINGLE_USER WITH ROLLBACK IMMEDIATE'.format(test_database_name))
+
+        super()._destroy_test_db(self, test_database_name, verbosity)
