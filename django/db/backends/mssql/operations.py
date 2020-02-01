@@ -1,5 +1,6 @@
-from django.db.backends.base.operations import BaseDatabaseOperations
 from django.db import models
+from django.db.models.expressions import Exists
+from django.db.backends.base.operations import BaseDatabaseOperations
 
 
 class DatabaseOperations(BaseDatabaseOperations):
@@ -91,3 +92,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         if lookup_type in ('iexact', 'icontains', 'iregex', 'istartswith', 'iendswith'):
             return "UPPER(%s)"
         return "%s"
+
+    def conditional_expression_supported_in_where_clause(self, expression):
+        if isinstance(expression, (Exists,)):
+            return True
+        return False
+
