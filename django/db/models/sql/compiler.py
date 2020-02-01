@@ -1355,7 +1355,7 @@ class SQLInsertCompiler(SQLCompiler):
                 params += [self.returning_params]
             sql_statement = [(" ".join(result), tuple(chain.from_iterable(params)))]
         elif can_bulk:
-            result.append(self.connection.ops.bulk_insert_sql(fields, placeholder_rows))
+            result.append(self.connection.ops.bulk_insert_sql(fields, placeholder_rows, self.returning_fields))
             if ignore_conflicts_suffix_sql:
                 result.append(ignore_conflicts_suffix_sql)
             sql_statement = [(" ".join(result), tuple(p for ps in param_rows for p in ps))]
