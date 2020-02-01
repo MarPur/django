@@ -594,7 +594,7 @@ END;
         row = cursor.fetchone()
         return self._get_no_autofield_sequence_name(table) if row is None else row[0]
 
-    def bulk_insert_sql(self, fields, placeholder_rows):
+    def bulk_insert_sql(self, fields, placeholder_rows, returning_fields):
         query = []
         for row in placeholder_rows:
             select = []

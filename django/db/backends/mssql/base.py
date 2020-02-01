@@ -92,6 +92,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     operators = {
         'exact': '= %s',
+        'iexact': '= UPPER(%s)'
     }
 
     def get_connection_params(self):
