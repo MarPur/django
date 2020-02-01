@@ -88,6 +88,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         )
 
     def lookup_cast(self, lookup_type, internal_type=None):
-        if lookup_type in ('iexact', 'icontains', 'istartswith', 'iendswith'):
+        if lookup_type in ('iexact', 'icontains', 'iregex', 'istartswith', 'iendswith'):
             return "UPPER(%s)"
         return "%s"
