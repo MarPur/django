@@ -34,6 +34,5 @@ class DatabaseCreation(BaseDatabaseCreation):
     def _destroy_test_db(self, test_database_name, verbosity):
         # kick every other session out of the database, so we could safely drop it
         with self.connection._nodb_connection.cursor() as cursor:
-            cursor.execute('ALTER DATABASE {0} SET SINGLE_USER WITH ROLLBACK IMMEDIATE'.format(test_database_name))
-
-        super()._destroy_test_db(self, test_database_name, verbosity)
+            cursor.execute('ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE'.format(test_database_name))
+            cursor.execute('DROP DATABASE IF EXISTS [{0}]'.format(test_database_name))

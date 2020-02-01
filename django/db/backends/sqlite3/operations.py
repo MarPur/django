@@ -325,7 +325,7 @@ class DatabaseOperations(BaseDatabaseOperations):
     def convert_booleanfield_value(self, value, expression, connection):
         return bool(value) if value in (1, 0) else value
 
-    def bulk_insert_sql(self, fields, placeholder_rows):
+    def bulk_insert_sql(self, fields, placeholder_rows, returning_fields):
         return " UNION ALL ".join(
             "SELECT %s" % ", ".join(row)
             for row in placeholder_rows

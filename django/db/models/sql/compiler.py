@@ -1376,7 +1376,7 @@ class SQLInsertCompiler(SQLCompiler):
         )
         if self.returning_fields and self.connection.features.can_return_columns_from_insert:
             if self.connection.features.can_return_rows_from_bulk_insert:
-                result.append(self.connection.ops.bulk_insert_sql(fields, placeholder_rows))
+                result.append(self.connection.ops.bulk_insert_sql(fields, placeholder_rows, self.returning_fields))
                 params = param_rows
             else:
                 result.append("VALUES (%s)" % ", ".join(placeholder_rows[0]))

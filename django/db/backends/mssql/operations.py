@@ -12,12 +12,12 @@ class DatabaseOperations(BaseDatabaseOperations):
         # this should not be called directly, as the Id is returned directly from the insert statement
         raise NotImplementedError('Last inserted id should not be called directly')
 
-    def bulk_insert_sql(self, fields, placeholder_rows):
+    def bulk_insert_sql(self, fields, placeholder_rows, returning_fields):
         placeholder_rows_sql = (", ".join(row) for row in placeholder_rows)
         values_sql = ", ".join("(%s)" % sql for sql in placeholder_rows_sql)
 
         return 'OUTPUT ' + ', '.join(
-            'INSERTED.{0}'.format(self.quote_name(f.column)) for f in fields
+            'INSERTED.{0}'.format(self.quote_name(f.column)) for f in returning_fields
         ) + ' VALUES ' + values_sql
 
     def limit_offset_sql(self, low_mark, high_mark):
@@ -26,7 +26,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         )
 
     def return_insert_columns(self, fields):
-        return None, None
+        return None, fields
 
     def fetch_returned_insert_rows(self, cursor):
         """
@@ -67,3 +67,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         return 'ROLLBACK {0}'.format(
             self.quote_name(sid)
         )
+
+    def lookup_cast(self, lookup_type, internal_type=None):
+        if lookup_type in ('iexact', 'icontains', 'istartswith', 'iendswith'):
+            return "UPPER(%s)"
+        return "%s"
