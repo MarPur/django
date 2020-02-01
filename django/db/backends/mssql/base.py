@@ -92,7 +92,19 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     operators = {
         'exact': '= %s',
-        'iexact': '= UPPER(%s)'
+        'iexact': '= UPPER(%s)',
+        'contains': 'LIKE %s',
+        'icontains': 'LIKE UPPER(%s)',
+        'regex': 'LIKE %s', # SQL Server does not support regex
+        'iregex': 'LIKE UPPER(%s)',
+        'gt': '> %s',
+        'gte': '>= %s',
+        'lt': '< %s',
+        'lte': '<= %s',
+        'startswith': 'LIKE %s',
+        'endswith': 'LIKE %s',
+        'istartswith': 'LIKE UPPER(%s)',
+        'iendswith': 'LIKE UPPER(%s)',
     }
 
     def get_connection_params(self):
