@@ -1,4 +1,5 @@
 from django.db.backends.base.operations import BaseDatabaseOperations
+from django.db import models
 
 
 class DatabaseOperations(BaseDatabaseOperations):
@@ -16,9 +17,17 @@ class DatabaseOperations(BaseDatabaseOperations):
         placeholder_rows_sql = (", ".join(row) for row in placeholder_rows)
         values_sql = ", ".join("(%s)" % sql for sql in placeholder_rows_sql)
 
-        return 'OUTPUT ' + ', '.join(
-            'INSERTED.{0}'.format(self.quote_name(f.column)) for f in returning_fields
-        ) + ' VALUES ' + values_sql
+        sql = ''
+
+        if returning_fields:
+            sql += 'OUTPUT ' + ', '.join(
+                'INSERTED.{0}'.format(self.quote_name(f.column)) for f in returning_fields
+            ) + ' '
+
+        sql += 'VALUES ' + values_sql
+
+        return sql
+
 
     def limit_offset_sql(self, low_mark, high_mark):
         return 'OFFSET {:d} ROWS FETCH FIRST {:d} ROWS ONLY'.format(
@@ -38,8 +47,10 @@ class DatabaseOperations(BaseDatabaseOperations):
     def wrap_insert_sql(self, insert_sql, table_name, fields):
         # If we are inserting a value into identity column explicitly,
         # we need to turn on the identity insert and then immediately
-        # turn if ott
-        identity_insert = any(f.primary_key for f in fields)
+        # turn if off
+        columns_with_identity = (models.AutoField, models.BigAutoField, models.SmallAutoField)
+
+        identity_insert = any(type(f) in columns_with_identity for f in fields)
 
         # TODO Handle errors in the insert, so the identity_on setting is not left hanging
         if identity_insert:
@@ -53,18 +64,26 @@ class DatabaseOperations(BaseDatabaseOperations):
 
         return insert_sql
 
+    def start_transaction_sql(self):
+        return 'BEGIN TRANSACTION'
+
+    def end_transaction_sql(self, success=True):
+        if not success:
+            return 'ROLLBACK TRANSACTION'
+        return 'COMMIT TRANSACTION'
+
     def savepoint_create_sql(self, sid):
         return 'SAVE TRANSACTION {0}'.format(
             self.quote_name(sid)
         )
 
     def savepoint_commit_sql(self, sid):
-        return 'ROLLBACK TRANSACTION {0}'.format(
+        return 'COMMIT TRANSACTION {0}'.format(
             self.quote_name(sid)
         )
 
     def savepoint_rollback_sql(self, sid):
-        return 'ROLLBACK {0}'.format(
+        return 'ROLLBACK TRANSACTION {0}'.format(
             self.quote_name(sid)
         )
 
