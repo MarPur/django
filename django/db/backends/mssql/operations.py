@@ -152,3 +152,81 @@ class DatabaseOperations(BaseDatabaseOperations):
         if not params:
             return sql
         return sql % params
+
+    def _get_referencing_constrains(self, table_name, recursive):
+        with self.connection.cursor() as cursor:
+            return cursor.execute('''
+                with ForeignKeys AS (
+                    SELECT
+                           OBJECT_NAME(fk.object_id) constrain_name
+                         , fk.object_id AS constraint_object_id
+                         , OBJECT_NAME(fk.parent_object_id) referencing_table
+                         , fk.parent_object_id AS referencing_table_object_id
+                         , OBJECT_NAME(fk.referenced_object_id) referenced_table
+                         , fk.referenced_object_id AS referenced_table_object_id
+                         , 1 AS Level
+                    FROM sys.foreign_keys fk
+                    WHERE OBJECT_NAME(fk.referenced_object_id) = '{table}'
+
+                    UNION ALL
+
+                    SELECT
+                           OBJECT_NAME(child.object_id)
+                         , child.object_id
+                         , OBJECT_NAME(child.parent_object_id)
+                         , child.parent_object_id
+                         , OBJECT_NAME(child.referenced_object_id)
+                         , child.referenced_object_id
+                         , parent.Level + 1
+                    FROM sys.foreign_keys AS child
+                    INNER JOIN ForeignKeys parent ON child.referenced_object_id = parent.referencing_table_object_id AND parent.referenced_table_object_id != child.parent_object_id
+                )
+                SELECT DISTINCT constrain_name, referencing_table, referenced_table, level
+                FROM ForeignKeys
+                WHERE Level = 1 AND 1 = {not_recursive} OR 1 = {recursive}
+                ORDER BY LEVEL DESC;
+            '''.format(table=table_name, recursive=int(recursive), not_recursive=int(not recursive))).fetchall()
+
+    def sql_flush(self, style, tables, sequences, allow_cascade=False):
+        statements = []
+
+        if not tables:
+            return statements
+
+        # if the allow_cascade is true, recursively, truncate tables
+        # that reference the tables in `tables`. Otherwise, drop the
+        # foreign key constraints
+
+        for table in sorted(tables):
+            referencing_objects = self._get_referencing_constrains(table, allow_cascade)
+
+            if allow_cascade:
+                statements.extend(
+                    '{0} {1} {2}'.format(
+                        style.SQL_KEYWORD('DELETE'),
+                        style.SQL_KEYWORD('FROM'),
+                        style.SQL_FIELD(self.quote_name(row[1])),
+                    ) for row in referencing_objects
+                )
+            else:
+                statements.extend(
+                    '{0} {1} {2} {3} {4} {5}'.format(
+                        style.SQL_KEYWORD('ALTER'),
+                        style.SQL_KEYWORD('TABLE'),
+                        style.SQL_FIELD(self.quote_name(row[1])),
+                        style.SQL_KEYWORD('DROP'),
+                        style.SQL_KEYWORD('CONSTRAINT'),
+                        style.SQL_FIELD(self.quote_name(row[0])),
+                    ) for row in referencing_objects
+                )
+
+            statements.append(
+                '{0} {1} {2}'.format(
+                    style.SQL_KEYWORD('DELETE'),
+                    style.SQL_KEYWORD('FROM'),
+                    style.SQL_FIELD(self.quote_name(table)),
+                )
+            )
+
+        return statements
+
