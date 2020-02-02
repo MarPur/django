@@ -328,6 +328,10 @@ class BaseDatabaseFeatures:
     # Does the ORDER BY need to be specified in order to use limit?
     requires_order_by_in_limit = False
 
+    # Can the query insert multiple rows without providing
+    # values for each one of them?
+    supports_bulk_inserts_without_values = True
+
     def __init__(self, connection):
         self.connection = connection
 
