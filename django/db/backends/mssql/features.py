@@ -6,3 +6,4 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_transactions = True
     can_return_rows_from_bulk_insert = True
     can_return_columns_from_insert = True
+    supports_ignore_conflicts = False # TODO Check if TRY...CATCH could allow us to implement this
