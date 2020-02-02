@@ -1325,8 +1325,15 @@ class SQLInsertCompiler(SQLCompiler):
             ]
         else:
             # An empty object.
-            value_rows = [[self.connection.ops.pk_default_value()] for _ in self.query.objs]
-            fields = [None]
+            if self.connection.features.supports_bulk_inserts_without_values:
+                value_rows = [[self.connection.ops.pk_default_value()] for _ in self.query.objs]
+                fields = [None]
+            else:
+                sql_statement = self.connection.ops.insert_without_values(
+                    opts.db_table, self.returning_fields, len(self.query.objs)
+                )
+
+                return [(sql_statement, tuple()),]
 
         # Currently the backends just accept values when generating bulk
         # queries and generate their own placeholders. Doing that isn't

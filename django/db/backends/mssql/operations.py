@@ -6,26 +6,43 @@ from django.db.backends.base.operations import BaseDatabaseOperations
 
 
 class DatabaseOperations(BaseDatabaseOperations):
+
+    # Template to use to insert into a table
+    # without providing any values and relying
+    # on default values being generated
+    insert_into_table_all_default_values = '''
+        MERGE INTO {table}
+        USING (SELECT *
+        FROM (VALUES {row_placeholders}) t(_)) T
+        ON 1 = 0
+        WHEN NOT MATCHED THEN INSERT
+          DEFAULT VALUES
+    '''
+
     def quote_name(self, name):
         return '[{}]'.format(name)
 
     def max_name_length(self):
         return 128
 
+    def bulk_batch_size(self, fields, objs):
+        return 1000
+
     def last_insert_id(self, cursor, table_name, pk_name):
         # this should not be called directly, as the Id is returned directly from the insert statement
         raise NotImplementedError('Last inserted id should not be called directly')
 
     def bulk_insert_sql(self, fields, placeholder_rows, returning_fields):
-        placeholder_rows_sql = (", ".join(row) for row in placeholder_rows)
-        values_sql = ", ".join("(%s)" % sql for sql in placeholder_rows_sql)
-
         sql = ''
 
         if returning_fields:
             sql += 'OUTPUT ' + ', '.join(
                 'INSERTED.{0}'.format(self.quote_name(f.column)) for f in returning_fields
             ) + ' '
+
+
+        placeholder_rows_sql = (", ".join(row) for row in placeholder_rows)
+        values_sql = ", ".join("(%s)" % sql for sql in placeholder_rows_sql)
 
         sql += 'VALUES ' + values_sql
 
@@ -98,18 +115,26 @@ class DatabaseOperations(BaseDatabaseOperations):
         return False
 
     def date_trunc_sql(self, lookup_type, field_name):
-        """
-        Given a lookup_type of 'year', 'month', or 'day', return the SQL that
-        truncates the given date field field_name to a date object with only
-        the given specificity.
-        """
-
         if lookup_type == 'year':
             return 'CAST(DATEADD(dd, -datepart(DAYOFYEAR, {0}) + 1, GETDATE()) AS DATE)'.format(field_name)
         elif lookup_type == 'day':
             return 'CAST({0} AS DATE)'.format(field_name)
         else:
             raise NotImplementedError('{0} is not implemented'.format(lookup_type))
+
+    def insert_without_values(self, table_name, returning_fields, num_objects):
+        row_placeholders = ', '.join('({0})'.format(i) for i in range(num_objects))
+
+        sql = self.insert_into_table_all_default_values.format(
+            table=self.quote_name(table_name), row_placeholders=row_placeholders
+        )
+
+        if returning_fields:
+            sql += 'OUTPUT ' + ', '.join('INSERTED.{0}'.format(self.quote_name(f.name)) for f in returning_fields)
+
+        sql += ';'
+
+        return sql
 
     def get_db_converters(self, expression):
         converters = super().get_db_converters(expression)
