@@ -289,7 +289,8 @@ class SQLCompiler:
         else:
             ordering = []
 
-        # if the query has limit clause, but no ordering, we need to pick and arbitrary
+        # if the query has limit clause, but no ordering, sort it by primary key
+        # as some backends require defined ordering whe using limit
         if self.connection.features.requires_order_by_in_limit and not ordering and (
             self.query.high_mark is not None or self.query.low_mark):
             ordering = [
