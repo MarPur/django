@@ -147,3 +147,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is not None:
             value = uuid.UUID(value)
         return value
+
+    def last_executed_query(self, cursor, sql, params):
+        if not params:
+            return sql
+        return sql % params
