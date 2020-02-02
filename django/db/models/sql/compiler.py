@@ -1363,7 +1363,7 @@ class SQLInsertCompiler(SQLCompiler):
             if ignore_conflicts_suffix_sql:
                 result.append(ignore_conflicts_suffix_sql)
             sql_statement = [
-                (" ".join(result + ["VALUES (   %s)" % ", ".join(p)]), vals)
+                (" ".join(result + ["VALUES (%s)" % ", ".join(p)]), vals)
                 for p, vals in zip(placeholder_rows, param_rows)
             ]
 

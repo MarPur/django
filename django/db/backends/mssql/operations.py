@@ -71,22 +71,19 @@ class DatabaseOperations(BaseDatabaseOperations):
     def end_transaction_sql(self, success=True):
         if not success:
             return 'ROLLBACK TRANSACTION'
+
         return 'COMMIT TRANSACTION'
 
     def savepoint_create_sql(self, sid):
-        return 'SAVE TRANSACTION {0}'.format(
-            self.quote_name(sid)
-        )
+        return 'SAVE TRANSACTION {0}'.format(sid)
 
     def savepoint_commit_sql(self, sid):
-        return 'COMMIT TRANSACTION {0}'.format(
-            self.quote_name(sid)
-        )
+        # SQL Server does not support committing save points, i.e.,
+        # parts of save transactions, instead it commits the entire transaction
+        pass
 
     def savepoint_rollback_sql(self, sid):
-        return 'ROLLBACK TRANSACTION {0}'.format(
-            self.quote_name(sid)
-        )
+        return 'ROLLBACK TRANSACTION {0}'.format(sid)
 
     def lookup_cast(self, lookup_type, internal_type=None):
         if lookup_type in ('iexact', 'icontains', 'iregex', 'istartswith', 'iendswith'):

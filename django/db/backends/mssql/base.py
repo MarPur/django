@@ -25,13 +25,16 @@ class CursorWrapper:
         return query
 
     def execute(self, query, args=None):
+        if not query:
+            return
+
         if args:
             return self.cursor.execute(self._format_sql(query, args), args)
         else:
             return self.cursor.execute(query)
 
     def executemany(self, query, args):
-        if not args:
+        if not (args and query):
             return
 
         return self.cursor.executemany(self._format_sql(query, args[0]), args)
