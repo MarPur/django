@@ -29,10 +29,10 @@ class DatabaseOperations(BaseDatabaseOperations):
 
         return sql
 
-
     def limit_offset_sql(self, low_mark, high_mark):
+        fetch, offset = self._get_limit_offset_params(low_mark, high_mark)
         return 'OFFSET {:d} ROWS FETCH FIRST {:d} ROWS ONLY'.format(
-            low_mark, high_mark
+            offset, fetch
         )
 
     def return_insert_columns(self, fields):
@@ -94,4 +94,18 @@ class DatabaseOperations(BaseDatabaseOperations):
         if isinstance(expression, (Exists,)):
             return True
         return False
+
+    def date_trunc_sql(self, lookup_type, field_name):
+        """
+        Given a lookup_type of 'year', 'month', or 'day', return the SQL that
+        truncates the given date field field_name to a date object with only
+        the given specificity.
+        """
+
+        if lookup_type == 'year':
+            return 'CAST(DATEADD(dd, -datepart(DAYOFYEAR, {0}) + 1, GETDATE()) AS DATE)'.format(field_name)
+        elif lookup_type == 'day':
+            return 'CAST({0} AS DATE)'.format(field_name)
+        else:
+            raise NotImplementedError('{0} is not implemented'.format(lookup_type))
 
