@@ -87,7 +87,7 @@ class ExecuteWrapperTests(TestCase):
                 sql = 'SELECT 17' + connection.features.bare_select_suffix
                 cursor.execute(sql)
                 seventeen = cursor.fetchall()
-                self.assertEqual(list(seventeen), [(17,)])
+                self.assertEqual(list(map(tuple, seventeen)), [(17,)])
             self.call_executemany(connection)
 
     def test_nested_wrapper_invoked(self):
