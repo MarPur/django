@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.db.models.expressions import Exists
 from django.db.backends.base.operations import BaseDatabaseOperations
@@ -229,4 +230,37 @@ class DatabaseOperations(BaseDatabaseOperations):
             )
 
         return statements
+
+    def _prepare_tzname_delta(self, tzname):
+        if '+' in tzname:
+            return tzname.replace('+', '-')
+        elif '-' in tzname:
+            return tzname.replace('-', '+')
+        return tzname
+
+    def _convert_field_to_tz(self, field_name, tzname):
+        if settings.USE_TZ:
+            field_name = "SWITCHOFFSET({0}, '{1}')".format(field_name, self._prepare_tzname_delta(tzname))
+        return field_name
+
+    def datetime_extract_sql(self, lookup_type, field_name, tzname):
+        # TODO Check behaviour matches postgres
+        field_name = self._convert_field_to_tz(field_name, tzname)
+        return self.date_extract_sql(lookup_type, field_name)
+
+    def date_extract_sql(self, lookup_type, field_name):
+        # TODO Check extracting date & time
+        if lookup_type == 'week_day':
+            return 'DATEPART(WEEKDAY, {0})'.format(field_name)
+        elif lookup_type == 'iso_week_day':
+            return '(DATEPART(WEEKDAY, {0}) + 5) % 7 + 1)'.format(field_name)
+        elif lookup_type == 'iso_year':
+            return 'DATEPART(YEAR, {0})'.format(field_name)
+        elif lookup_type == 'iso_year':
+            return 'DATEPART(YEAR, {0})'.format(field_name)
+        elif lookup_type == 'week':
+            return 'DATEPART(ISO_WEEK, {0})'.format(field_name)
+        else:
+            return 'DATEPART({0}, {1})'.format(lookup_type, field_name)
+
 
