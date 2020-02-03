@@ -9,3 +9,4 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_nullable_unique_constraints = False
     supports_ignore_conflicts = False
     supports_bulk_inserts_without_values = False
+    supports_paramstyle_pyformat = False

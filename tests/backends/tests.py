@@ -228,7 +228,7 @@ class EscapingChecks(TestCase):
     def test_parameter_escaping(self):
         with connection.cursor() as cursor:
             cursor.execute("SELECT '%%', %s" + self.bare_select_suffix, ('%d',))
-            self.assertEqual(cursor.fetchall()[0], ('%', '%d'))
+            self.assertEqual(tuple(cursor.fetchall()[0]), ('%', '%d'))
 
 
 @override_settings(DEBUG=True)
