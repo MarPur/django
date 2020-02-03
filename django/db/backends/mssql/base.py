@@ -29,6 +29,7 @@ class CursorWrapper:
             return
 
         if args:
+            args = list(args)
             return self.cursor.execute(self._format_sql(query, args), args)
         else:
             return self.cursor.execute(query)
@@ -37,7 +38,7 @@ class CursorWrapper:
         if not (args and query):
             return
 
-        # TODO Check if this is correct
+        args = list(args)
         return self.cursor.executemany(self._format_sql(query, args[0]), args)
 
     def close(self):
