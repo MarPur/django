@@ -117,7 +117,7 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def date_trunc_sql(self, lookup_type, field_name):
         if lookup_type == 'year':
-            return 'CAST(DATEADD(dd, -datepart(DAYOFYEAR, {0}) + 1, GETDATE()) AS DATE)'.format(field_name)
+            return 'CAST(DATEADD(dd, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'day':
             return 'CAST({0} AS DATE)'.format(field_name)
         else:
