@@ -3,6 +3,7 @@ import struct
 import pyodbc as Database
 
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db import DatabaseError
 
 from .client import DatabaseClient
 from .creation import DatabaseCreation
@@ -177,7 +178,13 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     def get_new_connection(self, conn_params):
         connection_string = ';'.join('{}={}'.format(k, v) for (k, v) in conn_params.items())
 
-        connection = Database.connect(connection_string)
+        try:
+            connection = Database.connect(connection_string)
+        except Database.InterfaceError as e:
+            if e.args[0] in ('28000',):
+                raise DatabaseError('Could not connect to the database') from e
+        except:
+            raise
         connection.add_output_converter(-155, handle_datetimeoffset)
 
         return connection
