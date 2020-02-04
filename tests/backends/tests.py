@@ -339,6 +339,10 @@ class BackendTestCase(TransactionTestCase):
             self.assertEqual(list(cursor.fetchmany(2)), [('Jane', 'Doe'), ('John', 'Doe')])
             self.assertEqual(list(cursor.fetchall()), [('Mary', 'Agnelline'), ('Peter', 'Parker')])
 
+    @unittest.skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support deferrable constraints'
+    )
     def test_unicode_password(self):
         old_password = connection.settings_dict['PASSWORD']
         connection.settings_dict['PASSWORD'] = "françois"
@@ -560,6 +564,10 @@ class FkConstraintsTests(TransactionTestCase):
         with self.assertRaises(IntegrityError):
             a2.save()
 
+    @unittest.skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support deferrable constraints'
+    )
     def test_disable_constraint_checks_manually(self):
         """
         When constraint checks are disabled, should be able to write bad data
@@ -583,6 +591,10 @@ class FkConstraintsTests(TransactionTestCase):
                 self.fail("IntegrityError should not have occurred.")
             transaction.set_rollback(True)
 
+    @unittest.skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support deferrable constraints'
+    )
     def test_disable_constraint_checks_context_manager(self):
         """
         When constraint checks are disabled (using context manager), should be
@@ -605,6 +617,10 @@ class FkConstraintsTests(TransactionTestCase):
                 self.fail("IntegrityError should not have occurred.")
             transaction.set_rollback(True)
 
+    @unittest.skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support deferrable constraints'
+    )
     def test_check_constraints(self):
         """
         Constraint checks should raise an IntegrityError when bad data is in the DB.
