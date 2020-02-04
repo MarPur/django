@@ -12,6 +12,34 @@ from .operations import DatabaseOperations
 from .schema import DatabaseSchemaEditor
 
 
+def _format_result_row(row):
+    return tuple(row)
+
+
+class ResultSetWrapper:
+
+    def __init__(self, results):
+        self.results = results
+
+    def fetchone(self):
+        results = self.results.fetchone()
+
+        return _format_result_row(results) if results else results
+
+    def fetchall(self):
+        results = self.results.fetchall()
+
+        return list(map(_format_result_row, results))  if results else results
+
+    def fetchmany(self, *args):
+        results = self.results.fetchmany(*args)
+
+        return list(map(_format_result_row, results))  if results else results
+
+    def __getattr__(self, attr):
+        return getattr(self.results, attr)
+
+
 class CursorWrapper:
     def __init__(self, cursor):
         self.cursor = cursor
@@ -30,21 +58,35 @@ class CursorWrapper:
 
         if args:
             args = list(args)
-            return self.cursor.execute(self._format_sql(query, args), args)
+            return ResultSetWrapper(self.cursor.execute(self._format_sql(query, args), args))
         else:
-            return self.cursor.execute(query)
+            return ResultSetWrapper(self.cursor.execute(query))
 
     def executemany(self, query, args):
         if not (args and query):
             return
 
         args = list(args)
-        return self.cursor.executemany(self._format_sql(query, args[0]), args)
+        return ResultSetWrapper(self.cursor.executemany(self._format_sql(query, args[0]), args))
 
     def close(self):
         if self.alive:
             self.alive = False
             self.cursor.close()
+
+    def fetchone(self):
+        results = self.cursor.fetchone()
+        return _format_result_row(results) if results else results
+
+    def fetchall(self):
+        results = self.cursor.fetchall()
+
+        return list(map(_format_result_row, results)) if results else results
+
+    def fetchmany(self, *args):
+        results = self.cursor.fetchmany(*args)
+
+        return list(map(_format_result_row, results))  if results else results
 
     def __getattr__(self, attr):
         return getattr(self.cursor, attr)
@@ -148,6 +190,14 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _set_autocommit(self, autocommit):
         self.connection.autocommit = autocommit
+
+    def is_usable(self):
+        try:
+            self.connection.execute("SELECT 1").fetchall()
+        except Database.Error:
+            return False
+
+        return True
 
 
 def handle_datetimeoffset(dto_value):
