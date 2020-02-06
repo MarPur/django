@@ -5,7 +5,7 @@ from django.core.exceptions import FieldError
 from django.db.models.expressions import Case, Func, Star, When
 from django.db.models.fields import IntegerField
 from django.db.models.functions.mixins import (
-    FixDurationInputMixin, NumericOutputFieldMixin,
+    FixDurationInputMixin, NumericOutputFieldMixin, ForceFloat
 )
 
 __all__ = [
@@ -96,7 +96,7 @@ class Aggregate(Func):
         return options
 
 
-class Avg(FixDurationInputMixin, NumericOutputFieldMixin, Aggregate):
+class Avg(ForceFloat, FixDurationInputMixin, NumericOutputFieldMixin, Aggregate):
     function = 'AVG'
     name = 'Avg'
     allow_distinct = True
@@ -139,6 +139,14 @@ class StdDev(NumericOutputFieldMixin, Aggregate):
     def _get_repr_options(self):
         return {**super()._get_repr_options(), 'sample': self.function == 'STDDEV_SAMP'}
 
+    def as_mssql(self, compiler, connection, **kwargs):
+        mapping = {
+            'STDDEV_SAMP': 'STDEV',
+            'STDDEV_POP': 'STDEVP',
+        }
+
+        return self.as_sql(compiler, connection, function=mapping[self.function], **kwargs)
+
 
 class Sum(FixDurationInputMixin, Aggregate):
     function = 'SUM'
@@ -155,3 +163,12 @@ class Variance(NumericOutputFieldMixin, Aggregate):
 
     def _get_repr_options(self):
         return {**super()._get_repr_options(), 'sample': self.function == 'VAR_SAMP'}
+
+    def as_mssql(self, compiler, connection, **kwargs):
+        mapping = {
+            'VAR_SAMP': 'VAR',
+            'VAR_POP': 'VARP',
+        }
+
+        return self.as_sql(compiler, connection, function=mapping[self.function], **kwargs)
+
