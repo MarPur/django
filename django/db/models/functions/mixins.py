@@ -41,6 +41,13 @@ class FixDurationInputMixin:
         return super().as_sql(compiler, connection, **extra_context)
 
 
+class ForceFloat:
+
+    def as_mssql(self, compiler, connection, **extra_context):
+        template = '%(function)s(CAST(%(distinct)s%(expressions)s AS REAL))'
+        return super().as_sql(compiler, connection, template=template, **extra_context)
+
+
 class NumericOutputFieldMixin:
 
     def _resolve_output_field(self):
