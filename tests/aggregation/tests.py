@@ -903,7 +903,7 @@ class AggregateTestCase(TestCase):
 
         b2 = Book.objects.annotate(sums=Sum(F('rating') + F('pages') + F('price'),
                                    output_field=FloatField())).get(pk=self.b4.pk)
-        self.assertEqual(b2.sums, 383.69)
+        self.assertEqual(b2.sums, Approximate(383.69, places=2))
 
         b3 = Book.objects.annotate(sums=Sum(F('rating') + F('pages') + F('price'),
                                    output_field=DecimalField())).get(pk=self.b4.pk)
