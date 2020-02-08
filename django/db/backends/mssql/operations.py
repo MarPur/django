@@ -7,6 +7,7 @@ from django.db.backends.base.operations import BaseDatabaseOperations
 
 
 class DatabaseOperations(BaseDatabaseOperations):
+    compiler_module = "django.db.backends.mssql.compiler"
 
     # Template to use to insert into a table
     # without providing any values and relying
