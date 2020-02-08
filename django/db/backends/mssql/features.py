@@ -11,3 +11,4 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_ignore_conflicts = False
     supports_bulk_inserts_without_values = False
     supports_paramstyle_pyformat = False
+    supports_subqueries_in_group_by = False
