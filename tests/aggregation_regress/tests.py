@@ -2,7 +2,7 @@ import datetime
 import pickle
 from decimal import Decimal
 from operator import attrgetter
-from unittest import mock
+from unittest import mock, skipIf
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import FieldError
@@ -107,6 +107,10 @@ class AggregationTests(TestCase):
         for attr, value in kwargs.items():
             self.assertEqual(getattr(obj, attr), value)
 
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support parameters in GROUP BY'
+    )
     def test_annotation_with_value(self):
         values = Book.objects.filter(
             name='Practical Django Projects',
