@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from django.conf import settings
@@ -143,12 +144,24 @@ class DatabaseOperations(BaseDatabaseOperations):
         internal_type = expression.output_field.get_internal_type()
         if internal_type == 'UUIDField':
             converters.append(self.convert_uuidfield_value)
+        if internal_type == 'DateTimeField':
+            converters.append(self.convert_datetimefield_value)
+
         return converters
 
     def convert_uuidfield_value(self, value, expression, connection):
         if value is not None:
             value = uuid.UUID(value)
         return value
+
+    def convert_datetimefield_value(self, value, expression, connection):
+        if value is None:
+            return
+
+        if settings.USE_TZ:
+            raise NotImplemented('Timezones are not implemented yet')
+        else:
+            return value.replace(tzinfo=None)
 
     def last_executed_query(self, cursor, sql, params):
         if not params:
