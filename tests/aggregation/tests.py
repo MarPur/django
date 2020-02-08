@@ -1,6 +1,7 @@
 import datetime
 import re
 from decimal import Decimal
+from unittest import skipIf
 
 from django.core.exceptions import FieldError
 from django.db import connection
@@ -1101,6 +1102,10 @@ class AggregateTestCase(TestCase):
             max_books_per_rating,
             {'books_per_rating__max': 3 + 5})
 
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support functions with variable number of parameters'
+    )
     def test_expression_on_aggregation(self):
         qs = Publisher.objects.annotate(
             price_or_median=Greatest(Avg('book__rating', output_field=DecimalField()), Avg('book__price'))
