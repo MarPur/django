@@ -1,7 +1,6 @@
+from django.db.models.expressions import Subquery, Star
 from django.db.models.sql import compiler
-from django.db.models.expressions import Ref
-
-from django.utils.hashable import make_hashable
+from django.db.models.sql.constants import SINGLE
 
 
 class SQLCompiler(compiler.SQLCompiler):
@@ -11,8 +10,24 @@ class SQLCompiler(compiler.SQLCompiler):
         # SQL Server does not allow constants to appear in GROUP BY clause
 
         # TODO Check if expressions with columns work
-        return list(filter(lambda i: hasattr(i.output_field, 'model'), expressions))
+        return list(filter(lambda i: not isinstance(i, Subquery), expressions))
 
+    def has_results(self):
+        self.query.clear_limits()
+        self.query.clear_ordering(True)
+        self.query.add_select_col(self.query.model._meta.pk.cached_col)
+
+        sql, params = self.as_sql()
+        sql = self.connection.ops.result_exists_sql(sql)
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(sql, params)
+
+        results = cursor.fetchone()
+
+        # TODO Check if works with joins
+        return bool(results[0])
 
 class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
     pass
