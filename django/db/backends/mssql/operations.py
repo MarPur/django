@@ -308,18 +308,27 @@ class DatabaseOperations(BaseDatabaseOperations):
 
         raise NotImplementedError('{0} is not implemented'.format(lookup_type))
 
+    def datetime_cast_date_sql(self, field_name, tzname):
+        field_name = self._convert_field_to_tz(field_name, tzname)
+        return 'CAST({0} AS DATE)'.format(field_name)
+
     def _convert_field_to_tz(self, field_name, tzname):
         # SQL Server does not have tz database, instead
         # it reads available timezones from the machine's registry
         # https://docs.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-time-zone-info-transact-sql?view=sql-server-ver15
         # so we try to calculate the offsets in python
         # rather than in the DB
-        if settings.USE_TZ and not tzname == 'UTC':
-            zone = pytz.timezone(tzname)
+        if settings.USE_TZ and  self.connection.timezone_name != tzname:
+            connection_tz_offset = self._get_timezone_offset(self.connection.timezone_name)
+            current_tz_offset = self._get_timezone_offset(tzname)
 
-            now = datetime.datetime.now()
-            delta = zone.localize(now, is_dst=False).utcoffset()
-            offset = delta.days * 86400 + delta.seconds
+            offset = current_tz_offset - connection_tz_offset
 
             field_name = 'DATEADD(second, {0}, {1})'.format(offset, field_name)
         return field_name
+
+    def _get_timezone_offset(self, tzname):
+        zone = pytz.timezone(tzname)
+        now = datetime.datetime.now()
+        delta = zone.localize(now, is_dst=False).utcoffset()
+        return delta.days * 86400 + delta.seconds
