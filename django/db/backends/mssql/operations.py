@@ -1,4 +1,7 @@
+import datetime
 import uuid
+
+import pytz
 
 from django.conf import settings
 from django.db import models
@@ -262,14 +265,9 @@ class DatabaseOperations(BaseDatabaseOperations):
 
         return statements
 
-    def _prepare_tzname_delta(self, tzname):
-        if '+' in tzname:
-            return tzname.replace('+', '-')
-        elif '-' in tzname:
-            return tzname.replace('-', '+')
-        return tzname
-
     def datetime_extract_sql(self, lookup_type, field_name, tzname):
+        field_name = self._convert_field_to_tz(field_name, tzname)
+
         return self.date_extract_sql(lookup_type, field_name)
 
     def date_extract_sql(self, lookup_type, field_name):
@@ -288,6 +286,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             return 'DATEPART({0}, {1})'.format(lookup_type, field_name)
 
     def datetime_trunc_sql(self, lookup_type, field_name, tzname):
+        field_name = self._convert_field_to_tz(field_name, tzname)
+
         if lookup_type == 'year':
             return 'CAST(CAST(DATEADD(dd, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
 
@@ -307,3 +307,19 @@ class DatabaseOperations(BaseDatabaseOperations):
             return 'DATEADD(MS, -DATEPART(MS, {0}), {0})'.format(field_name)
 
         raise NotImplementedError('{0} is not implemented'.format(lookup_type))
+
+    def _convert_field_to_tz(self, field_name, tzname):
+        # SQL Server does not have tz database, instead
+        # it reads available timezones from the machine's registry
+        # https://docs.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-time-zone-info-transact-sql?view=sql-server-ver15
+        # so we try to calculate the offsets in python
+        # rather than in the DB
+        if settings.USE_TZ and not tzname == 'UTC':
+            zone = pytz.timezone(tzname)
+
+            now = datetime.datetime.now()
+            delta = zone.localize(now, is_dst=False).utcoffset()
+            offset = delta.days * 86400 + delta.seconds
+
+            field_name = 'DATEADD(second, {0}, {1})'.format(offset, field_name)
+        return field_name

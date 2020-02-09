@@ -286,8 +286,25 @@ class NewDatabaseTests(TestCase):
         self.assertEqual(event.dt, datetime.datetime(2011, 9, 1, tzinfo=EAT))
 
     @requires_tz_support
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server has limited precision for milliseconds'
+    )
     def test_naive_datetime_with_microsecond(self):
         dt = datetime.datetime(2011, 9, 1, 13, 20, 30, 405060)
+        with self.assertWarnsMessage(RuntimeWarning, self.naive_warning):
+            Event.objects.create(dt=dt)
+        event = Event.objects.get()
+        # naive datetimes are interpreted in local time
+        self.assertEqual(event.dt, dt.replace(tzinfo=EAT))
+
+    @requires_tz_support
+    @skipUnless(
+        connection.vendor == 'mssql',
+        'SQL Server has limited precision for milliseconds'
+    )
+    def test_naive_datetime_with_microsecond(self):
+        dt = datetime.datetime(2011, 9, 1, 13, 20, 30, 407000)
         with self.assertWarnsMessage(RuntimeWarning, self.naive_warning):
             Event.objects.create(dt=dt)
         event = Event.objects.get()
@@ -300,8 +317,22 @@ class NewDatabaseTests(TestCase):
         event = Event.objects.get()
         self.assertEqual(event.dt, dt)
 
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server has limited precision for milliseconds'
+    )
     def test_aware_datetime_in_local_timezone_with_microsecond(self):
         dt = datetime.datetime(2011, 9, 1, 13, 20, 30, 405060, tzinfo=EAT)
+        Event.objects.create(dt=dt)
+        event = Event.objects.get()
+        self.assertEqual(event.dt, dt)
+
+    @skipUnless(
+        connection.vendor == 'mssql',
+        'SQL Server has limited precision for milliseconds'
+    )
+    def test_aware_datetime_in_local_timezone_with_milliseconds(self):
+        dt = datetime.datetime(2011, 9, 1, 13, 20, 30, 407000, tzinfo=EAT)
         Event.objects.create(dt=dt)
         event = Event.objects.get()
         self.assertEqual(event.dt, dt)
