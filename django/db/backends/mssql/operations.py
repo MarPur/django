@@ -5,7 +5,7 @@ import pytz
 
 from django.conf import settings
 from django.db import models
-from django.db.models.expressions import Exists
+from django.db.models.expressions import Exists, RawSQL, ExpressionWrapper
 from django.db.backends.base.operations import BaseDatabaseOperations
 from django.utils import timezone
 
@@ -123,7 +123,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         return "%s"
 
     def conditional_expression_supported_in_where_clause(self, expression):
-        if isinstance(expression, (Exists,)):
+        if isinstance(expression, (Exists, RawSQL, ExpressionWrapper)):
             return True
         return False
 
