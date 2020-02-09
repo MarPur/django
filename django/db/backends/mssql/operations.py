@@ -332,3 +332,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         now = datetime.datetime.now()
         delta = zone.localize(now, is_dst=False).utcoffset()
         return delta.days * 86400 + delta.seconds
+
+    def date_interval_sql(self, timedelta):
+        # SQL Server interprets the number when adding to DATETIME as the number of days
+        return str(timedelta.days + (timedelta.seconds + timedelta.microseconds / 1000000) / (24 * 60 * 60))
