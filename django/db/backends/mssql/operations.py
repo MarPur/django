@@ -287,4 +287,23 @@ class DatabaseOperations(BaseDatabaseOperations):
         else:
             return 'DATEPART({0}, {1})'.format(lookup_type, field_name)
 
+    def datetime_trunc_sql(self, lookup_type, field_name, tzname):
+        if lookup_type == 'year':
+            return 'CAST(CAST(DATEADD(dd, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
 
+        if lookup_type == 'month':
+            return 'CAST(CAST(DATEADD(dd, -DATEPART(DAY, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
+
+        if lookup_type == 'day':
+            return 'CAST(CAST({0} AS DATE) AS DATETIME)'.format(field_name)
+
+        if lookup_type == 'hour':
+            return 'DATEADD(MI, -DATEPART(MI, {0}), DATEADD(S, -DATEPART(S, {0}), DATEADD(MS, -DATEPART(MS, {0}), {0})))'.format(field_name)
+
+        if lookup_type == 'minute':
+            return 'DATEADD(S, -DATEPART(S, {0}), DATEADD(MS, -DATEPART(MS, {0}), {0}))'.format(field_name)
+
+        if lookup_type == 'second':
+            return 'DATEADD(MS, -DATEPART(MS, {0}), {0})'.format(field_name)
+
+        raise NotImplementedError('{0} is not implemented'.format(lookup_type))
