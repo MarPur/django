@@ -277,7 +277,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         if lookup_type == 'week_day':
             return 'DATEPART(WEEKDAY, {0})'.format(field_name)
         elif lookup_type == 'iso_week_day':
-            return '(DATEPART(WEEKDAY, {0}) + 5) % 7 + 1)'.format(field_name)
+            return '((DATEPART(WEEKDAY, {0}) + 5) %% 7 + 1)'.format(field_name)
         elif lookup_type == 'iso_year':
             return 'DATEPART(YEAR, {0})'.format(field_name)
         elif lookup_type == 'iso_year':
