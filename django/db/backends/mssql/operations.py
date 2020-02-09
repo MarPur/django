@@ -1,10 +1,10 @@
-import datetime
 import uuid
 
 from django.conf import settings
 from django.db import models
 from django.db.models.expressions import Exists
 from django.db.backends.base.operations import BaseDatabaseOperations
+from django.utils import timezone
 
 
 class DatabaseOperations(BaseDatabaseOperations):
@@ -152,7 +152,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         if internal_type == 'UUIDField':
             converters.append(self.convert_uuidfield_value)
         if internal_type == 'DateTimeField':
-            converters.append(self.convert_datetimefield_value)
+            if settings.USE_TZ:
+                converters.append(self.convert_datetimefield_value)
 
         return converters
 
@@ -165,10 +166,19 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is None:
             return
 
-        if settings.USE_TZ:
-            raise NotImplemented('Timezones are not implemented yet')
-        else:
-            return value.replace(tzinfo=None)
+        return timezone.make_aware(value, self.connection.timezone)
+
+    def adapt_datetimefield_value(self, value):
+        if value is None:
+            return None
+
+        if timezone.is_aware(value):
+            if settings.USE_TZ:
+                value = timezone.make_naive(value, self.connection.timezone)
+            else:
+                raise ValueError("SQL Server backend does not support timezone-aware datetimes when USE_TZ is False.")
+
+        return value.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
     def last_executed_query(self, cursor, sql, params):
         if not params:
@@ -259,14 +269,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             return tzname.replace('-', '+')
         return tzname
 
-    def _convert_field_to_tz(self, field_name, tzname):
-        if settings.USE_TZ:
-            field_name = "SWITCHOFFSET({0}, '{1}')".format(field_name, self._prepare_tzname_delta(tzname))
-        return field_name
-
     def datetime_extract_sql(self, lookup_type, field_name, tzname):
-        # TODO Check behaviour matches postgres
-        field_name = self._convert_field_to_tz(field_name, tzname)
         return self.date_extract_sql(lookup_type, field_name)
 
     def date_extract_sql(self, lookup_type, field_name):
