@@ -1215,6 +1215,22 @@ class OrderBy(BaseExpression):
         params *= template.count('%(expression)s')
         return (template % placeholders).rstrip(), params
 
+    def as_mssql(self, compiler, connection):
+        # SQL Server does not support ordering NULLs first or last
+        if not self.nulls_first and not self.nulls_last:
+            return self.as_sql(compiler, connection)
+
+        if self.nulls_first:
+            template = 'CASE WHEN %(expression)s IS NULL THEN 0 ELSE 1 END ASC, %(expression)s %(ordering)s'
+        elif self.nulls_last:
+            template = 'CASE WHEN %(expression)s IS NULL THEN 0 ELSE 1 END DESC, %(expression)s %(ordering)s'
+
+        copy = self.copy()
+        copy.nulls_first = False
+        copy.nulls_last = False
+
+        return copy.as_sql(compiler, connection, template=template)
+
     def as_oracle(self, compiler, connection):
         # Oracle doesn't allow ORDER BY EXISTS() unless it's wrapped in
         # a CASE WHEN.
