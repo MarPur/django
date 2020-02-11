@@ -63,9 +63,11 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def limit_offset_sql(self, low_mark, high_mark):
         fetch, offset = self._get_limit_offset_params(low_mark, high_mark)
-        return 'OFFSET {:d} ROWS FETCH FIRST {:d} ROWS ONLY'.format(
-            offset, fetch
-        )
+
+        return ' '.join(sql for sql in (
+            ('OFFSET {0} ROWS'.format(offset or 0)),
+            ('FETCH FIRST {0} ROWS ONLY'.format(fetch)) if fetch else None,
+        ) if sql)
 
     def return_insert_columns(self, fields):
         return None, fields
@@ -129,7 +131,9 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def date_trunc_sql(self, lookup_type, field_name):
         if lookup_type == 'year':
-            return 'CAST(DATEADD(dd, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE)'.format(field_name)
+            return 'CAST(DATEADD(DAY, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE)'.format(field_name)
+        elif lookup_type == 'month':
+            return 'CAST(DATEADD(DAY, -DATEPART(DAY, {0}) + 1, {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'day':
             return 'CAST({0} AS DATE)'.format(field_name)
         else:
@@ -336,3 +340,6 @@ class DatabaseOperations(BaseDatabaseOperations):
     def date_interval_sql(self, timedelta):
         # SQL Server interprets the number when adding to DATETIME as the number of days
         return str(timedelta.days + (timedelta.seconds + timedelta.microseconds / 1000000) / (24 * 60 * 60))
+
+    def no_limit_value(self):
+        return None
