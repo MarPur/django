@@ -3,7 +3,7 @@ import itertools
 import os
 import re
 from importlib import import_module
-from unittest import mock
+from unittest import mock, skipIf
 from urllib.parse import quote
 
 from django.apps import apps
@@ -1267,6 +1267,10 @@ class ChangelistTests(AuthViewsTestCase):
         self.assertEqual(u.password, original_password)
 
 
+@skipIf(
+    connection.vendor == 'mssql',
+    'Cannot disable FK constraints in MS SQL'
+)
 @override_settings(
     AUTH_USER_MODEL='auth_tests.UUIDUser',
     ROOT_URLCONF='auth_tests.urls_custom_user_admin',
