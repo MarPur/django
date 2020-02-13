@@ -343,3 +343,7 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def no_limit_value(self):
         return None
+
+    def format_for_duration_arithmetic(self, sql):
+        # Convert microseconds to days
+        return '{0} / (24.0 * 60 * 60 * 1000000)'.format(sql)
