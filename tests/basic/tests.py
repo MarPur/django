@@ -1,9 +1,9 @@
 import threading
 from datetime import datetime, timedelta
-from unittest import mock
+from unittest import mock, skipIf
 
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.db import DEFAULT_DB_ALIAS, DatabaseError, connections, models
+from django.db import DEFAULT_DB_ALIAS, DatabaseError, connection, connections, models
 from django.db.models.manager import BaseManager
 from django.db.models.query import MAX_GET_RESULTS, EmptyQuerySet, QuerySet
 from django.test import (
@@ -172,6 +172,10 @@ class ModelTest(TestCase):
 
         self.assertNotEqual(Article.objects.get(id__exact=a1.id), Article.objects.get(id__exact=a2.id))
 
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support microsecond precision',
+    )
     def test_microsecond_precision(self):
         a9 = Article(
             headline='Article 9',
@@ -728,7 +732,7 @@ class ModelRefreshTests(TestCase):
         self.assertEqual(s2.selfref, s1)
 
     def test_refresh_unsaved(self):
-        pub_date = datetime.now()
+        pub_date = datetime.now().replace(microsecond=100000)
         a = Article.objects.create(pub_date=pub_date)
         a2 = Article(id=a.pk)
         with self.assertNumQueries(1):

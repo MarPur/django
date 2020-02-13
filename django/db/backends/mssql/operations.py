@@ -36,7 +36,15 @@ class DatabaseOperations(BaseDatabaseOperations):
         return 128
 
     def bulk_batch_size(self, fields, objs):
-        return 1000
+        parameters = len(fields) * len(objs)
+
+        if parameters > self.connection.features.max_query_params:
+            batch_size = self.connection.features.max_query_params // len(fields)
+        else:
+            batch_size = len(objs)
+
+        # SQL Server allows up to 1000 row values inserted
+        return min(batch_size, 1000)
 
     def last_insert_id(self, cursor, table_name, pk_name):
         # this should not be called directly, as the Id is returned directly from the insert statement
