@@ -1100,6 +1100,13 @@ class DBCacheTests(BaseCacheTests, TransactionTestCase):
         )
         self.assertEqual(out.getvalue(), "Cache table 'test cache table' created.\n")
 
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server can return -1 when it cannot determine the number of rows affected'
+    )
+    def test_delete_nonexistent(self):
+        super().test_delete_nonexistent()
+
 
 @override_settings(USE_TZ=True)
 class DBCacheWithTimeZoneTests(DBCacheTests):

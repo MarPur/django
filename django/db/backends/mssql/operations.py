@@ -196,9 +196,10 @@ class DatabaseOperations(BaseDatabaseOperations):
         return value.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
     def last_executed_query(self, cursor, sql, params):
-        if not params:
-            return sql
-        return sql % params
+        return cursor.last_sql
+
+    def cache_key_culling_sql(self):
+        return 'SELECT cache_key FROM %s ORDER BY cache_key OFFSET %%s ROWS FETCH FIRST 1 ROWS ONLY'
 
     def _get_referencing_constrains(self, table_name, recursive):
         with self.connection.cursor() as cursor:

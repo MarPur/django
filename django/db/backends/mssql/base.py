@@ -46,6 +46,7 @@ class CursorWrapper:
     def __init__(self, cursor):
         self.cursor = cursor
         self.alive = True
+        self.last_sql = None
 
     def _format_sql(self, query, args):
         # PyODBC uses ? instead of %s for parameter placeholders
@@ -60,8 +61,12 @@ class CursorWrapper:
 
         if args:
             args = list(args)
-            return ResultSetWrapper(self.cursor.execute(self._format_sql(query, args), args))
+            query = self._format_sql(query, args)
+
+            self.last_sql = query, args
+            return ResultSetWrapper(self.cursor.execute(query, args))
         else:
+            self.last_sql = query, None
             return ResultSetWrapper(self.cursor.execute(query))
 
     def executemany(self, query, args):
@@ -69,6 +74,7 @@ class CursorWrapper:
             return
 
         args = list(args)
+        self.last_sql = query, args
         return ResultSetWrapper(self.cursor.executemany(self._format_sql(query, args[0]), args))
 
     def close(self):
