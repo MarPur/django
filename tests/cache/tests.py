@@ -11,7 +11,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
-from unittest import mock
+from unittest import mock, skipIf
 
 from django.conf import settings
 from django.core import management, signals
@@ -1058,6 +1058,13 @@ class DBCacheTests(BaseCacheTests, TransactionTestCase):
             stdout=out,
         )
         self.assertEqual(out.getvalue(), "Cache table 'test cache table' created.\n")
+
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server can return -1 when it cannot determine the number of rows affected'
+    )
+    def test_delete_nonexistent(self):
+        super().test_delete_nonexistent()
 
 
 @override_settings(USE_TZ=True)
