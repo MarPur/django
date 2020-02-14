@@ -59,6 +59,10 @@ class LastDigitTransform(models.Transform):
         lhs, lhs_params = compiler.compile(self.lhs)
         return 'SUBSTR(CAST(%s AS CHAR(2)), 2, 1)' % lhs, lhs_params
 
+    def as_mssql(self, compiler, connection):
+        lhs, lhs_params = compiler.compile(self.lhs)
+        return 'SUBSTRING(CAST(%s AS CHAR(2)), 2, 1)' % lhs, lhs_params
+
 
 class UpperBilateralTransform(models.Transform):
     bilateral = True
