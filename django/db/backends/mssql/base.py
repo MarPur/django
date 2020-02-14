@@ -158,6 +158,16 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'iendswith': 'LIKE UPPER(%s)',
     }
 
+    pattern_esc = r"REPLACE(REPLACE(REPLACE({}, '\', '\\'), '%%', '\%%'), '_', '\_')"
+    pattern_ops = {
+        'contains': r"LIKE '%%' + {} + '%%' ESCAPE '\'",
+        'icontains': r"LIKE '%%' + UPPER({}) + '%%' ESCAPE '\'",
+        'startswith': r"LIKE {} + '%%' ESCAPE '\'",
+        'istartswith': r"LIKE UPPER({}) + '%%' ESCAPE '\'",
+        'endswith': r"LIKE '%%' + {} ESCAPE '\'",
+        'iendswith': r"LIKE '%%' + UPPER({}) ESCAPE '\'",
+    }
+
     def get_connection_params(self):
         kwargs = {
             'DRIVER': '{ODBC Driver 17 for SQL Server}'''
