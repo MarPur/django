@@ -143,7 +143,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif lookup_type == 'month':
             return 'CAST(DATEADD(DAY, -DATEPART(DAY, {0}) + 1, {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'week':
-            return 'CAST(DATEADD(DAY, -DATEPART(WEEKDAY, {0}) + 1, {0}) AS DATE)'.format(field_name)
+            return 'CAST(DATEADD(DAY, -((DATEPART(WEEKDAY, {0}) + @@DATEFIRST + 5) % 7), {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'day':
             return 'CAST({0} AS DATE)'.format(field_name)
         else:
@@ -195,7 +195,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             else:
                 raise ValueError("SQL Server backend does not support timezone-aware datetimes when USE_TZ is False.")
 
-        return value.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        return value.strftime('%Y-%m-%d %H:%M:%S.%f')
 
     def last_executed_query(self, cursor, sql, params):
         if not params:
@@ -288,11 +288,10 @@ class DatabaseOperations(BaseDatabaseOperations):
         return self.date_extract_sql(lookup_type, field_name)
 
     def date_extract_sql(self, lookup_type, field_name):
-        # TODO Check extracting date & time
         if lookup_type == 'week_day':
             return 'DATEPART(WEEKDAY, {0})'.format(field_name)
         elif lookup_type == 'iso_week_day':
-            return '((DATEPART(WEEKDAY, {0}) + 5) %% 7 + 1)'.format(field_name)
+            return '((DATEPART(WEEKDAY, {0}) + 5) % 7 + 1)'.format(field_name)
         elif lookup_type == 'iso_year':
             return 'DATEPART(YEAR, {0})'.format(field_name)
         elif lookup_type == 'iso_year':
@@ -306,16 +305,16 @@ class DatabaseOperations(BaseDatabaseOperations):
         field_name = self._convert_field_to_tz(field_name, tzname)
 
         if lookup_type == 'year':
-            return 'CAST(CAST(DATEADD(dd, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
+            return 'CAST(CAST(DATEADD(dd, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE) AS DATETIME2)'.format(field_name)
 
         if lookup_type == 'month':
-            return 'CAST(CAST(DATEADD(dd, -DATEPART(DAY, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
+            return 'CAST(CAST(DATEADD(dd, -DATEPART(DAY, {0}) + 1, {0}) AS DATE) AS DATETIME2)'.format(field_name)
 
         if lookup_type == 'week':
-            return 'CAST(CAST(DATEADD(dd, -DATEPART(WEEKDAY, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
+            return 'CAST(CAST(DATEADD(DAY, -((DATEPART(WEEKDAY, {0}) + @@DATEFIRST + 5) % 7), {0}) AS DATE) AS DATETIME2)'.format(field_name)
 
         if lookup_type == 'day':
-            return 'CAST(CAST({0} AS DATE) AS DATETIME)'.format(field_name)
+            return 'CAST(CAST({0} AS DATE) AS DATETIME2)'.format(field_name)
 
         if lookup_type == 'hour':
             return 'DATEADD(MI, -DATEPART(MI, {0}), DATEADD(S, -DATEPART(S, {0}), DATEADD(MS, -DATEPART(MS, {0}), {0})))'.format(field_name)
@@ -353,13 +352,32 @@ class DatabaseOperations(BaseDatabaseOperations):
         delta = zone.localize(now, is_dst=False).utcoffset()
         return delta.days * 86400 + delta.seconds
 
+    def combine_duration_expression(self, connector, sub_expressions):
+        target, expression = sub_expressions
+
+        if isinstance(sub_expressions[1], datetime.timedelta):
+            return 'DATEADD(DAY, {sign}{days}, DATEADD(SECOND, {sign}{seconds}, ' \
+                   'DATEADD(MICROSECOND, {sign}{microseconds}, {target})))'.format(
+                sign=connector, days=expression.days, seconds=expression.seconds,
+                microseconds=expression.microseconds,
+                target=target
+            )
+
+        # We got an that stores the duration in microseconds which is BIGINT, however,
+        # DATEADD function accepts INT only, so to avoid overflow,
+        # add microseconds, seconds, minutes, and hours separately
+        return 'DATEADD(MICROSECOND, {sign}CAST({expression} AS BIGINT) % 1000000, ' \
+               'DATEADD(SECOND, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT))) % 60, ' \
+               'DATEADD(MINUTE, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT) * 60)) % 60, ' \
+               'DATEADD(HOUR, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT) * 60 * 60)), {target}))))'.format(
+            sign=connector, expression=expression, target=target
+        )
+
     def date_interval_sql(self, timedelta):
-        # SQL Server interprets the number when adding to DATETIME as the number of days
-        return str(timedelta.days + (timedelta.seconds + timedelta.microseconds / 1000000) / (24 * 60 * 60))
+        return timedelta
 
     def no_limit_value(self):
         return None
 
     def format_for_duration_arithmetic(self, sql):
-        # Convert microseconds to days
-        return '{0} / (24.0 * 60 * 60 * 1000000)'.format(sql)
+        return sql

@@ -172,10 +172,6 @@ class ModelTest(TestCase):
 
         self.assertNotEqual(Article.objects.get(id__exact=a1.id), Article.objects.get(id__exact=a2.id))
 
-    @skipIf(
-        connection.vendor == 'mssql',
-        'SQL Server does not support microsecond precision',
-    )
     def test_microsecond_precision(self):
         a9 = Article(
             headline='Article 9',
@@ -732,7 +728,7 @@ class ModelRefreshTests(TestCase):
         self.assertEqual(s2.selfref, s1)
 
     def test_refresh_unsaved(self):
-        pub_date = datetime.now().replace(microsecond=100000)
+        pub_date = datetime.now()
         a = Article.objects.create(pub_date=pub_date)
         a2 = Article(id=a.pk)
         with self.assertNumQueries(1):

@@ -202,7 +202,11 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return connection
 
     def init_connection_state(self):
-        self.connection.execute('SET DATEFIRST 1')
+        set_options = ('LANGUAGE', 'DATEFIRST')
+        for option in set_options:
+            if option in self.settings_dict['OPTIONS']:
+                value = self.settings_dict['OPTIONS'].get(option)
+                self.connection.execute('SET {0} {1}'.format(option, value))
 
     def create_cursor(self, name=None):
         return CursorWrapper(self.connection.cursor())
