@@ -11,6 +11,10 @@ from django.utils import timezone
 from ..models import Article, Author, DecimalModel, Fan
 
 
+@skipIf(
+    connection.vendor == 'mssql',
+    'SQL Server does not support this function'
+)
 class GreatestTests(TestCase):
 
     def test_basic(self):
