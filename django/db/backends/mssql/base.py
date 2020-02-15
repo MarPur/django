@@ -119,7 +119,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'BooleanField': 'bit',
         'CharField': 'nvarchar(%(max_length)s)',
         'DateField': 'date',
-        'DateTimeField': 'datetime',
+        'DateTimeField': 'datetime2',
         'DecimalField': 'decimal(%(max_digits)s, %(decimal_places)s)',
         'DurationField': 'bigint',
         'FileField': 'nvarchar(%(max_length)s)',
@@ -202,7 +202,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return connection
 
     def init_connection_state(self):
-        pass
+        self.connection.execute('SET DATEFIRST 1')
 
     def create_cursor(self, name=None):
         return CursorWrapper(self.connection.cursor())

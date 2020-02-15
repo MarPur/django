@@ -142,6 +142,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             return 'CAST(DATEADD(DAY, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'month':
             return 'CAST(DATEADD(DAY, -DATEPART(DAY, {0}) + 1, {0}) AS DATE)'.format(field_name)
+        elif lookup_type == 'week':
+            return 'CAST(DATEADD(DAY, -DATEPART(WEEKDAY, {0}) + 1, {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'day':
             return 'CAST({0} AS DATE)'.format(field_name)
         else:
@@ -308,6 +310,9 @@ class DatabaseOperations(BaseDatabaseOperations):
 
         if lookup_type == 'month':
             return 'CAST(CAST(DATEADD(dd, -DATEPART(DAY, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
+
+        if lookup_type == 'week':
+            return 'CAST(CAST(DATEADD(dd, -DATEPART(WEEKDAY, {0}) + 1, {0}) AS DATE) AS DATETIME)'.format(field_name)
 
         if lookup_type == 'day':
             return 'CAST(CAST({0} AS DATE) AS DATETIME)'.format(field_name)
