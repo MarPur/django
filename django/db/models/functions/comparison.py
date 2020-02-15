@@ -80,6 +80,9 @@ class Greatest(Func):
         """Use the MAX function on SQLite."""
         return super().as_sqlite(compiler, connection, function='MAX', **extra_context)
 
+    def as_mssql(self, *args, **kwargs):
+        raise ValueError('Not supported in SQL Server')
+
 
 class Least(Func):
     """
@@ -99,6 +102,9 @@ class Least(Func):
     def as_sqlite(self, compiler, connection, **extra_context):
         """Use the MIN function on SQLite."""
         return super().as_sqlite(compiler, connection, function='MIN', **extra_context)
+
+    def as_mssql(self, *args, **kwargs):
+        raise ValueError('Not supported in SQL Server')
 
 
 class NullIf(Func):

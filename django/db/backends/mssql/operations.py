@@ -13,6 +13,23 @@ from django.utils import timezone
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "django.db.backends.mssql.compiler"
 
+    cast_char_field_without_max_length = 'NVARCHAR(MAX)'
+
+    cast_data_types = {
+        'AutoField': 'int',
+        'BigAutoField': 'bigint',
+        'SmallAutoField': 'smallint',
+        'CharField': 'nvarchar(%(max_length)s)',
+        'DecimalField': 'decimal(%(max_digits)s, %(decimal_places)s)',
+        'TextField': 'nvarchar(max)',
+        'IntegerField': 'int',
+        'BigIntegerField': 'bigint',
+        'SmallIntegerField': 'smallint',
+        'PositiveBigIntegerField': 'bigint',
+        'PositiveIntegerField': 'int',
+        'PositiveSmallIntegerField': 'smallint',
+    }
+
     # Template to use to insert into a table
     # without providing any values and relying
     # on default values being generated
