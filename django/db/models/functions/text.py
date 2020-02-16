@@ -28,6 +28,16 @@ class OracleHashMixin:
         )
 
 
+class SQLServerHashMixin:
+    def as_mssql(self, compiler, connection, **extra_context):
+        return super().as_sql(
+            compiler,
+            connection,
+            template="LOWER(CONVERT(NVARCHAR(128), HASHBYTES('%(function)s', %(expressions)s), 2))",
+            **extra_context,
+        )
+
+
 class PostgreSQLSHAMixin:
     def as_postgresql(self, compiler, connection, **extra_content):
         return super().as_sql(
@@ -180,7 +190,7 @@ class LTrim(Transform):
     lookup_name = 'ltrim'
 
 
-class MD5(OracleHashMixin, Transform):
+class MD5(OracleHashMixin, SQLServerHashMixin, Transform):
     function = 'MD5'
     lookup_name = 'md5'
 
@@ -211,6 +221,9 @@ class Repeat(Func):
         length = None if number is None else Length(expression) * number
         rpad = RPad(expression, length, expression)
         return rpad.as_sql(compiler, connection, **extra_context)
+
+    def as_mssql(self, compiler, connection, **extra_context):
+        return super().as_sql(compiler, connection, function='REPLICATE', **extra_context)
 
 
 class Replace(Func):
@@ -255,12 +268,12 @@ class RTrim(Transform):
     lookup_name = 'rtrim'
 
 
-class SHA1(OracleHashMixin, PostgreSQLSHAMixin, Transform):
+class SHA1(SQLServerHashMixin, OracleHashMixin, PostgreSQLSHAMixin, Transform):
     function = 'SHA1'
     lookup_name = 'sha1'
 
 
-class SHA224(MySQLSHA2Mixin, PostgreSQLSHAMixin, Transform):
+class SHA224(SQLServerHashMixin, MySQLSHA2Mixin, PostgreSQLSHAMixin, Transform):
     function = 'SHA224'
     lookup_name = 'sha224'
 
@@ -268,17 +281,17 @@ class SHA224(MySQLSHA2Mixin, PostgreSQLSHAMixin, Transform):
         raise NotSupportedError('SHA224 is not supported on Oracle.')
 
 
-class SHA256(MySQLSHA2Mixin, OracleHashMixin, PostgreSQLSHAMixin, Transform):
+class SHA256(SQLServerHashMixin, MySQLSHA2Mixin, OracleHashMixin, PostgreSQLSHAMixin, Transform):
     function = 'SHA256'
     lookup_name = 'sha256'
 
 
-class SHA384(MySQLSHA2Mixin, OracleHashMixin, PostgreSQLSHAMixin, Transform):
+class SHA384(SQLServerHashMixin, MySQLSHA2Mixin, OracleHashMixin, PostgreSQLSHAMixin, Transform):
     function = 'SHA384'
     lookup_name = 'sha384'
 
 
-class SHA512(MySQLSHA2Mixin, OracleHashMixin, PostgreSQLSHAMixin, Transform):
+class SHA512(SQLServerHashMixin, MySQLSHA2Mixin, OracleHashMixin, PostgreSQLSHAMixin, Transform):
     function = 'SHA512'
     lookup_name = 'sha512'
 

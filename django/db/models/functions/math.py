@@ -99,6 +99,10 @@ class Ln(NumericOutputFieldMixin, Transform):
     function = 'LN'
     lookup_name = 'ln'
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        copy = self.copy()
+        return copy.as_sql(compiler, connection, function='LOG' **extra_context)
+
 
 class Log(FixDecimalInputMixin, NumericOutputFieldMixin, Func):
     function = 'LOG'
