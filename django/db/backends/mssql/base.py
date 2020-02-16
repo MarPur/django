@@ -49,19 +49,20 @@ class CursorWrapper:
 
     def _format_sql(self, query, args):
         # PyODBC uses ? instead of %s for parameter placeholders
-        if args:
-            return query % (('?',) * len(args))
+        placeholders = (('?',) * len(args)) if args else tuple()
 
-        return query
+        if placeholders:
+            return query % placeholders
+        return query.replace('%%', '%')
 
     def execute(self, query, args=None):
         if not query:
             return
 
-        if args:
-            args = list(args)
-            query = self._format_sql(query, args)
+        args = tuple(args) if args else tuple()
+        query = self._format_sql(query, args)
 
+        if args:
             return ResultSetWrapper(self.cursor.execute(query, args))
         else:
             return ResultSetWrapper(self.cursor.execute(query))
@@ -119,7 +120,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'BooleanField': 'bit',
         'CharField': 'nvarchar(%(max_length)s)',
         'DateField': 'date',
-        'DateTimeField': 'datetime2',
+        'DateTimeField': 'datetimeoffset',
         'DecimalField': 'decimal(%(max_digits)s, %(decimal_places)s)',
         'DurationField': 'bigint',
         'FileField': 'nvarchar(%(max_length)s)',
@@ -199,6 +200,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         except:
             raise
 
+        connection.add_output_converter(-155, handle_datetimeoffset)
+
         return connection
 
     def init_connection_state(self):
@@ -221,3 +224,17 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             return False
 
         return True
+
+def handle_datetimeoffset(dto_value):
+    # https://github.com/mkleehammer/pyodbc/issues/134#issuecomment-281739794
+    tup = struct.unpack("<6hI2h", dto_value)  # e.g., (2017, 3, 16, 10, 35, 18, 0, -6, 0)
+    tweaked = [tup[i] // 1000 if i == 6 else tup[i] for i in range(len(tup))]
+
+    offset = datetime.timezone(
+        datetime.timedelta(hours=tweaked[7], minutes=tweaked[8])
+    )
+
+    return datetime.datetime(
+        tweaked[0], tweaked[1], tweaked[2], tweaked[3],
+        tweaked[4], tweaked[5], tweaked[6], offset
+    )

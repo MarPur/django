@@ -234,6 +234,7 @@ class LegacyDatabaseTests(TestCase):
         event = Event.objects.get()
         self.assertEqual(event.dt, dt)
 
+    @skipIf(connection.vendor == 'mssql', 'MS SQL stores the UTC offset')
     def test_cursor_execute_returns_naive_datetime(self):
         dt = datetime.datetime(2011, 9, 1, 13, 20, 30)
         Event.objects.create(dt=dt)
@@ -535,6 +536,7 @@ class NewDatabaseTests(TestCase):
             self.assertEqual(cursor.fetchall()[0][0], dt)
 
     @skipIfDBFeature('supports_timezones')
+    @skipIf(connection.vendor == 'mssql', 'MS SQL stores the UTC offset')
     def test_cursor_execute_returns_naive_datetime(self):
         dt = datetime.datetime(2011, 9, 1, 13, 20, 30, tzinfo=EAT)
         utc_naive_dt = timezone.make_naive(dt, timezone.utc)
