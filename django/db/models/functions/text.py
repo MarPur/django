@@ -287,6 +287,11 @@ class StrIndex(Func):
     def as_postgresql(self, compiler, connection, **extra_context):
         return super().as_sql(compiler, connection, function='STRPOS', **extra_context)
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        copy = self.copy()
+        # arguments are in opposite order
+        copy.source_expressions = copy.source_expressions[::-1]
+        return copy.as_sql(compiler, connection, function='CHARINDEX', **extra_context)
 
 class Substr(Func):
     function = 'SUBSTRING'
