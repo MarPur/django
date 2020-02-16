@@ -60,6 +60,12 @@ class Chr(Transform):
     def as_sqlite(self, compiler, connection, **extra_context):
         return super().as_sql(compiler, connection, function='CHAR', **extra_context)
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        # CHAR accepts single argument, so the function call needs to be repeated
+        # for every argument passed
+        template = ' + '.join(('%(function)s(%(expressions)s)',) * len(self.source_expressions))
+        return super().as_sql(compiler, connection, template=template, function='CHAR', **extra_context)
+
 
 class ConcatPair(Func):
     """
