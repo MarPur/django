@@ -48,6 +48,9 @@ class ATan2(NumericOutputFieldMixin, Func):
         ])
         return clone.as_sql(compiler, connection, **extra_context)
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        return super().as_sql(compiler, connection, function='ATN2', **extra_context)
+
 
 class Ceil(Transform):
     function = 'CEILING'
