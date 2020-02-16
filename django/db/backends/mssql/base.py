@@ -49,19 +49,20 @@ class CursorWrapper:
 
     def _format_sql(self, query, args):
         # PyODBC uses ? instead of %s for parameter placeholders
-        if args:
-            return query % (('?',) * len(args))
+        placeholders = (('?',) * len(args)) if args else tuple()
 
-        return query
+        if placeholders:
+            return query % placeholders
+        return query.replace('%%', '%')
 
     def execute(self, query, args=None):
         if not query:
             return
 
-        if args:
-            args = list(args)
-            query = self._format_sql(query, args)
+        args = tuple(args) if args else tuple()
+        query = self._format_sql(query, args)
 
+        if args:
             return ResultSetWrapper(self.cursor.execute(query, args))
         else:
             return ResultSetWrapper(self.cursor.execute(query))

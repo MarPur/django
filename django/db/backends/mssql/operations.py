@@ -157,6 +157,8 @@ class DatabaseOperations(BaseDatabaseOperations):
     def date_trunc_sql(self, lookup_type, field_name):
         if lookup_type == 'year':
             return 'CAST(DATEADD(DAY, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE)'.format(field_name)
+        elif lookup_type == 'quarter':
+            return 'CAST(DATEADD(DAY, -DATEPART(DAY, {0}) + 1, DATEADD(MONTH, -((DATEPART(MONTH, {0}) - 1) % 3), {0})) AS DATE)'.format(field_name)
         elif lookup_type == 'month':
             return 'CAST(DATEADD(DAY, -DATEPART(DAY, {0}) + 1, {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'week':
@@ -165,6 +167,22 @@ class DatabaseOperations(BaseDatabaseOperations):
             return 'CAST({0} AS DATE)'.format(field_name)
         else:
             raise NotImplementedError('{0} is not implemented'.format(lookup_type))
+
+    def time_trunc_sql(self, lookup_type, field_name):
+        truncate_microseconds = 'DATEADD(MICROSECOND, -DATEPART(MICROSECOND, {0}), {0})'
+        truncate_seconds = 'DATEADD(SECOND, -DATEPART(SECOND, {0}), {1})'.format('{0}', truncate_microseconds)
+        truncate_minutes = 'DATEADD(MINUTE, -DATEPART(MINUTE, {0}), {1})'.format('{0}', truncate_seconds)
+
+        if lookup_type == 'hour':
+            return truncate_minutes.format(field_name)
+
+        if lookup_type == 'minute':
+            return truncate_seconds.format(field_name)
+
+        if lookup_type == 'second':
+            return truncate_microseconds.format(field_name)
+
+        raise ValueError('Cannot truncate {0}'.format(lookup_type))
 
     def insert_without_values(self, table_name, returning_fields, num_objects):
         row_placeholders = ', '.join('({0})'.format(i) for i in range(num_objects))
@@ -308,7 +326,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         if lookup_type == 'week_day':
             return 'DATEPART(WEEKDAY, {0})'.format(field_name)
         elif lookup_type == 'iso_week_day':
-            return '((DATEPART(WEEKDAY, {0}) + 5) % 7 + 1)'.format(field_name)
+            return '((DATEPART(WEEKDAY, {0}) + 5) %% 7 + 1)'.format(field_name)
         elif lookup_type == 'iso_year':
             return 'DATEPART(YEAR, {0})'.format(field_name)
         elif lookup_type == 'iso_year':
@@ -324,6 +342,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         if lookup_type == 'year':
             return 'CAST(CAST(DATEADD(dd, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE) AS DATETIME2)'.format(field_name)
 
+        if lookup_type == 'quarter':
+            return 'CAST(CAST(DATEADD(DAY, -DATEPART(DAY, {0}) + 1, DATEADD(MONTH, -((DATEPART(MONTH, {0}) - 1) % 3), {0})) AS DATE) AS DATETIME2)'.format(field_name)
+
         if lookup_type == 'month':
             return 'CAST(CAST(DATEADD(dd, -DATEPART(DAY, {0}) + 1, {0}) AS DATE) AS DATETIME2)'.format(field_name)
 
@@ -333,14 +354,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         if lookup_type == 'day':
             return 'CAST(CAST({0} AS DATE) AS DATETIME2)'.format(field_name)
 
-        if lookup_type == 'hour':
-            return 'DATEADD(MI, -DATEPART(MI, {0}), DATEADD(S, -DATEPART(S, {0}), DATEADD(MS, -DATEPART(MS, {0}), {0})))'.format(field_name)
-
-        if lookup_type == 'minute':
-            return 'DATEADD(S, -DATEPART(S, {0}), DATEADD(MS, -DATEPART(MS, {0}), {0}))'.format(field_name)
-
-        if lookup_type == 'second':
-            return 'DATEADD(MS, -DATEPART(MS, {0}), {0})'.format(field_name)
+        if lookup_type in ('hour', 'minute', 'second'):
+            return self.time_trunc_sql(lookup_type, field_name)
 
         raise NotImplementedError('{0} is not implemented'.format(lookup_type))
 
@@ -383,9 +398,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         # We got an that stores the duration in microseconds which is BIGINT, however,
         # DATEADD function accepts INT only, so to avoid overflow,
         # add microseconds, seconds, minutes, and hours separately
-        return 'DATEADD(MICROSECOND, {sign}CAST({expression} AS BIGINT) % 1000000, ' \
-               'DATEADD(SECOND, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT))) % 60, ' \
-               'DATEADD(MINUTE, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT) * 60)) % 60, ' \
+        return 'DATEADD(MICROSECOND, {sign}CAST({expression} AS BIGINT) %% 1000000, ' \
+               'DATEADD(SECOND, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT))) %% 60, ' \
+               'DATEADD(MINUTE, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT) * 60)) %% 60, ' \
                'DATEADD(HOUR, {sign}FLOOR(CAST({expression} AS BIGINT) / (CAST(1000000 AS BIGINT) * 60 * 60)), {target}))))'.format(
             sign=connector, expression=expression, target=target
         )

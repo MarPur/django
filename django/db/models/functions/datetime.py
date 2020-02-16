@@ -208,6 +208,23 @@ class TruncBase(TimezoneMixin, Transform):
             raise ValueError('Trunc only valid on DateField, TimeField, or DateTimeField.')
         return sql, inner_params
 
+    def as_mssql(self, compiler, connection):
+        sql, inner_params = self.as_sql(compiler, connection)
+
+        # The expression might have been repeated several times in the query generated,
+        # so we need to repeat the number of arguments too
+
+        if not inner_params:
+            return sql, inner_params
+
+        placeholders = sql.count('%s')
+
+        if placeholders % len(inner_params):
+            raise ValueError('Could not determine the number of arguments')
+
+        return sql, inner_params * (placeholders // len(inner_params))
+
+
     def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
         copy = super().resolve_expression(query, allow_joins, reuse, summarize, for_save)
         field = copy.lhs.output_field
