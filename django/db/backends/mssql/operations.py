@@ -1,4 +1,5 @@
 import datetime
+import re
 import uuid
 
 import pytz
@@ -317,6 +318,11 @@ class DatabaseOperations(BaseDatabaseOperations):
 
         return statements
 
+    def datetime_cast_time_sql(self, field_name, tzname):
+        field_name = self._convert_field_to_tz(field_name, tzname)
+
+        return 'CAST({0} AS TIME)'.format(field_name)
+
     def datetime_extract_sql(self, lookup_type, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
 
@@ -379,9 +385,15 @@ class DatabaseOperations(BaseDatabaseOperations):
         return field_name
 
     def _get_timezone_offset(self, tzname):
-        zone = pytz.timezone(tzname)
-        now = datetime.datetime.now()
-        delta = zone.localize(now, is_dst=False).utcoffset()
+        if '+' in tzname or '-' in tzname:
+            match = re.match('UTC([\+\-])?(\d{2}):(\d{2})', tzname)
+            seconds = int(match.group(2)) * 60 * 60 + int(match.group(3))
+            seconds = -seconds if match.group(1) == '-' else seconds
+            delta = datetime.timedelta(seconds=seconds)
+        else:
+            zone = pytz.timezone(tzname)
+            now = datetime.datetime.now()
+            delta = zone.localize(now, is_dst=False).utcoffset()
         return delta.days * 86400 + delta.seconds
 
     def combine_duration_expression(self, connector, sub_expressions):

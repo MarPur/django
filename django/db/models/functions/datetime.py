@@ -181,6 +181,10 @@ class Now(Func):
         # other databases.
         return self.as_sql(compiler, connection, template='STATEMENT_TIMESTAMP()', **extra_context)
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        # SQL Server's CURRENT_TIMESTAMP returns DATETIME which does not support microseconds,
+        # so we cast it to DATETIME2 which is used everywhere
+        return self.as_sql(compiler, connection, template='CAST(CURRENT_TIMESTAMP AS DATETIME2)', **extra_context)
 
 class TruncBase(TimezoneMixin, Transform):
     kind = None
