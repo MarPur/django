@@ -156,6 +156,9 @@ class Length(Transform):
     def as_mysql(self, compiler, connection, **extra_context):
         return super().as_sql(compiler, connection, function='CHAR_LENGTH', **extra_context)
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        return super().as_sql(compiler, connection, function='LEN', **extra_context)
+
 
 class Lower(Transform):
     function = 'LOWER'
