@@ -1,6 +1,6 @@
 import math
 
-from django.db.models.expressions import Func
+from django.db.models.expressions import Func, Value
 from django.db.models.fields import FloatField, IntegerField
 from django.db.models.functions import Cast
 from django.db.models.functions.mixins import (
@@ -178,6 +178,11 @@ class Round(Transform):
     function = 'ROUND'
     lookup_name = 'round'
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        copy = self.copy()
+        if len(copy.get_source_expressions()) == 1:
+            copy.set_source_expressions(copy.get_source_expressions() + [Value(0), ])
+        return copy.as_sql(compiler, connection, **extra_context)
 
 class Sign(Transform):
     function = 'SIGN'
