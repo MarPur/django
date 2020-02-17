@@ -1,3 +1,5 @@
+import re
+
 from django.db import NotSupportedError
 from django.db.models.expressions import Func, Value
 from django.db.models.fields import CharField, IntegerField
@@ -183,6 +185,30 @@ class LPad(Func):
         if not hasattr(length, 'resolve_expression') and length is not None and length < 0:
             raise ValueError("'length' must be greater or equal to 0.")
         super().__init__(expression, length, fill_text, **extra)
+
+    def as_mssql(self, compiler, connection, **extra_context):
+        # SQL Server does not have LPAD function
+        params = {}
+        sql_parts = []
+
+        parameters = ('string', 'length', 'pad_string')
+        for index, parameter in enumerate(parameters):
+            arg_sql, arg_params = compiler.compile(self.source_expressions[index])
+            params[parameter] = arg_params
+            sql_parts.append(arg_sql)
+
+        string, length, pad_string = sql_parts
+        args = []
+
+        template = 'CASE WHEN LEN({string}) <= {length} ' \
+                   'THEN CONCAT(SUBSTRING(REPLICATE({pad_string}, {length} - LEN({string})), 1, {length} - LEN({string})), {string}) ' \
+                   'ELSE SUBSTRING({string}, 1, {length}) END'
+
+        for match in re.findall('\{(\w+)\}', template):
+            if params[match]:
+                args.extend(params[match])
+
+        return template.format(string=string, length=length, pad_string=pad_string), args
 
 
 class LTrim(Transform):
