@@ -288,6 +288,30 @@ class Right(Left):
 class RPad(LPad):
     function = 'RPAD'
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        # SQL Server does not have RPAD function
+        params = {}
+        sql_parts = []
+
+        parameters = ('string', 'length', 'pad_string')
+        for index, parameter in enumerate(parameters):
+            arg_sql, arg_params = compiler.compile(self.source_expressions[index])
+            params[parameter] = arg_params
+            sql_parts.append(arg_sql)
+
+        string, length, pad_string = sql_parts
+        args = []
+
+        template = 'CASE WHEN LEN({string}) < {length} ' \
+                   'THEN CONCAT({string}, SUBSTRING(REPLICATE({pad_string}, {length} - LEN({string})), 1, {length} - LEN({string}))) ' \
+                   'ELSE SUBSTRING({string}, 1, {length}) END'
+
+        for match in re.findall('\{(\w+)\}', template):
+            if params[match]:
+                args.extend(params[match])
+
+        return template.format(string=string, length=length, pad_string=pad_string), args
+
 
 class RTrim(Transform):
     function = 'RTRIM'
