@@ -1,6 +1,8 @@
 import math
 from decimal import Decimal
+from unittest import skipIf
 
+from django.db import connection
 from django.db.models.functions import Mod
 from django.test import TestCase
 
@@ -24,6 +26,10 @@ class ModTests(TestCase):
         self.assertIsInstance(obj.n_mod, Decimal)
         self.assertAlmostEqual(obj.n_mod, Decimal(math.fmod(obj.n1, obj.n2)))
 
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server does not support modulus operation with floats'
+    )
     def test_float(self):
         FloatModel.objects.create(f1=-25, f2=0.33)
         obj = FloatModel.objects.annotate(f_mod=Mod('f1', 'f2')).first()

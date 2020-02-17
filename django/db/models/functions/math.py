@@ -121,6 +121,16 @@ class Mod(FixDecimalInputMixin, NumericOutputFieldMixin, Func):
     function = 'MOD'
     arity = 2
 
+    def as_mssql(self, compiler, connection, **extra_context):
+        # SQL Server does not have MOD function, so we have to use % operator
+        params = []
+        sql_parts = []
+        for arg in self.source_expressions:
+            arg_sql, arg_params = compiler.compile(arg)
+            params.extend(arg_params)
+            sql_parts.append(arg_sql)
+        return '{0} %% {1}'.format(*sql_parts), params
+
 
 class Pi(NumericOutputFieldMixin, Func):
     function = 'PI'
