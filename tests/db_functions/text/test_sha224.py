@@ -9,6 +9,10 @@ from django.test.utils import register_lookup
 from ..models import Author
 
 
+@unittest.skipIf(
+    connection.vendor == 'mssql',
+    'SQL Server does not use UTF-8'
+)
 class SHA224Tests(TestCase):
     @classmethod
     def setUpTestData(cls):

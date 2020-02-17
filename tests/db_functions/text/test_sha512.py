@@ -1,3 +1,5 @@
+from unittest import skipIf
+
 from django.db import connection
 from django.db.models import CharField
 from django.db.models.functions import SHA512
@@ -7,6 +9,10 @@ from django.test.utils import register_lookup
 from ..models import Author
 
 
+@skipIf(
+    connection.vendor == 'mssql',
+    'SQL Server does not use UTF-8'
+)
 class SHA512Tests(TestCase):
     @classmethod
     def setUpTestData(cls):
