@@ -1,10 +1,24 @@
-from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.models import CharField, FileField, FilePathField, SlugField, UUIDField, TextField
 
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.ddl_references import Statement
 
+
 class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
-    sql_rename_table = "EXEC sp_rename '%(old_table)s', '%(new_table)s'"
+    sql_create_column = "ALTER TABLE %(table)s ADD %(column)s %(definition)s"
     sql_delete_table = 'DROP TABLE %(table)s'
+    sql_delete_column = 'ALTER TABLE %(table)s DROP COLUMN %(column)s'
+    sql_rename_table = "EXEC sp_rename '%(old_table)s', '%(new_table)s'"
+
+    def _column_default_sql(self, field):
+        if type(field) in (CharField, FileField, FilePathField, SlugField, UUIDField, TextField):
+            return "'%s'"
+        return '%s'
+
+    def execute(self, sql, params=()):
+        if params:
+            return super().execute(sql % tuple(params))
+        return super().execute(sql)
 
     def quote_value(self, value):
         return str(value)

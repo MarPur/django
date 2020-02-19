@@ -86,3 +86,10 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         '''.format(table_name))
 
         return list(cursor.fetchall())
+
+    def get_relations(self, cursor, table_name):
+        constraints = self.get_key_columns(cursor, table_name)
+        relations = {}
+        for my_fieldname, other_table, other_field in constraints:
+            relations[my_fieldname] = (other_field, other_table)
+        return relations
