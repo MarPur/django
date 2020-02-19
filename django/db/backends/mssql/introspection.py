@@ -1,3 +1,4 @@
+from django.db.models import Index
 from django.db.backends.base.introspection import (
     BaseDatabaseIntrospection, TableInfo,
 )
@@ -7,41 +8,15 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     def get_table_list(self, cursor):
         cursor.execute("""
-            SELECT TABLE_NAME, CASE WHEN TABLE_TYPE = 'BASE TABLE' THEN 't' ELSE 'v' END AS OBJECT_TYPE
-            FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_TYPE IN ('BASE TABLE', 'VIEW')
+            SELECT TABLE_NAME, CASE WHEN table_type = 'BASE TABLE' THEN 't' ELSE 'v' END AS object_type
+            FROM information_schema.tables
+            WHERE table_type IN ('BASE TABLE', 'VIEW')
         """)
 
         return [TableInfo(row[0], row[1]) for row in cursor.fetchall()]
 
     def get_constraints(self, cursor, table_name):
         constraints = {}
-
-        # Unique and Primary Key
-        cursor.execute('''
-            SELECT
-                ku.column_name,
-                ku.constraint_name,
-                tc.constraint_type
-            FROM information_schema.table_constraints AS tc
-            INNER JOIN information_schema.key_column_usage AS ku ON
-                tc.constraint_type IN('PRIMARY KEY', 'UNIQUE') AND tc.constraint_name = ku.constraint_name
-            WHERE tc.table_name = '{0}'
-            ORDER BY ku.table_name, KU.ordinal_position;
-        '''.format(table_name))
-
-        for column, constraint, constraint_type in cursor.fetchall():
-            if constraint not in constraints:
-                constraints[constraint] = {
-                    'columns': [],
-                    'primary_key': constraint_type == 'PRIMARY KEY',
-                    'unique': constraint_type == 'UNIQUE',
-                    'foreign_key': False,
-                    'check': constraint_type == 'CHECK',
-                    'index': False
-                }
-
-            constraints[constraint]['columns'].append(column)
 
         # Check constraints
         cursor.execute('''
@@ -93,6 +68,32 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         #
         #     constraints[constraint]['columns'].append(column)
 
-        # TODO Indexes
+        # Indexes
+        cursor.execute('''
+            SELECT i.name, i.is_primary_key, i.is_unique, c.name AS [column], ic.is_descending_key
+            FROM sys.indexes i
+            INNER JOIN sys.index_columns ic ON i.index_id = ic.index_id AND i.object_id = ic.object_id
+            INNER JOIN sys.columns c ON c.column_id = ic.column_id AND ic.object_id = c.object_id
+            WHERE OBJECT_NAME(i.object_id) = '{0}'
+            ORDER BY i.name, ic.key_ordinal
+        '''.format(table_name))
+
+        for constraint, is_pk, is_unique, column, is_descending in cursor.fetchall():
+            if constraint not in constraints:
+                is_index = not is_pk and not is_unique
+
+                constraints[constraint] = {
+                    'columns': [],
+                    'orders': [],
+                    'primary_key': is_pk,
+                    'unique': is_unique,
+                    'foreign_key': False,
+                    'check': False,
+                    'index': is_index,
+                    'type': Index.suffix if is_index else None
+                }
+
+            constraints[constraint]['columns'].append(column)
+            constraints[constraint]['orders'].append('DESC' if is_descending else 'ASC')
 
         return constraints
