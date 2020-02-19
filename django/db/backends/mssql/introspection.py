@@ -35,38 +35,13 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     'columns': [],
                     'primary_key': False,
                     'unique': False,
-                    'foreign_key': False,
+                    'foreign_key': None,
                     'check': True,
                     'index': False
                 }
 
             if column:
                 constraints[constraint]['columns'].append(column)
-
-        # Foreign Keys
-        # cursor.execute('''
-        #     SELECT
-        #         OBJECT_NAME(fkc.constraint_object_id) constraint_name,
-        #         OBJECT_NAME(fkc.referenced_object_id) AS [referenced_table],
-        #         c2.name AS referenced_column
-        #     FROM sys.foreign_key_columns fkc
-        #     INNER JOIN sys.columns c ON c.column_id = parent_column_id AND c.object_id = fkc.parent_object_id
-        #     INNER JOIN sys.columns c2 ON c2.column_id = referenced_column_id AND c2.object_id = fkc.referenced_object_id
-        #     WHERE OBJECT_NAME(fkc.parent_object_id) = '{0}'
-        # '''.format(table_name))
-        #
-        # for constraint, referenced_table, referenced_column in cursor.fetchall():
-        #     if constraint not in constraints:
-        #         constraints[constraint] = {
-        #             'columns': [],
-        #             'primary_key': False,
-        #             'unique': False,
-        #             'foreign_key': (referenced_table, referenced_column),
-        #             'check': False,
-        #             'index': False,
-        #         }
-        #
-        #     constraints[constraint]['columns'].append(column)
 
         # Indexes
         cursor.execute('''
@@ -87,7 +62,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     'orders': [],
                     'primary_key': is_pk,
                     'unique': is_unique,
-                    'foreign_key': False,
+                    'foreign_key': None,
                     'check': False,
                     'index': is_index,
                     'type': Index.suffix if is_index else None
@@ -97,3 +72,17 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             constraints[constraint]['orders'].append('DESC' if is_descending else 'ASC')
 
         return constraints
+
+    def get_key_columns(self, cursor, table_name):
+        cursor.execute('''
+            SELECT
+                c.name AS referencing_column,
+                OBJECT_NAME(fkc.referenced_object_id) AS [referenced_table],
+                c2.name AS referenced_column
+            FROM sys.foreign_key_columns fkc
+            INNER JOIN sys.columns c ON c.column_id = parent_column_id AND c.object_id = fkc.parent_object_id
+            INNER JOIN sys.columns c2 ON c2.column_id = referenced_column_id AND c2.object_id = fkc.referenced_object_id
+            WHERE OBJECT_NAME(fkc.parent_object_id) = '{0}'
+        '''.format(table_name))
+
+        return list(cursor.fetchall())
