@@ -9,18 +9,29 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     sql_delete_table = 'DROP TABLE %(table)s'
     sql_delete_column = 'ALTER TABLE %(table)s DROP COLUMN %(column)s'
     sql_rename_table = "EXEC sp_rename '%(old_table)s', '%(new_table)s'"
+ 
+    def _alter_column_default_sql(self, model, old_field, new_field, drop=False):
+        if drop:
+            # In SQL Server, DEFAULT is a constraint, so we need to find the DEFAULT constraint
+            # for the given table and column and drop the constraint.
+            with self.connection.cursor() as cursor:
+                result = cursor.execute('''
+                    SELECT OBJECT_NAME(c.object_id) AS [constraint]
+                    FROM sys.default_constraints c
+                    INNER JOIN sys.columns col ON col.object_id = c.parent_object_id AND col.column_id = c.parent_column_id
+                    WHERE col.name = '{0}' AND OBJECT_NAME(c.parent_object_id) = '{1}'
+                '''.format(new_field.column, model._meta.db_table)).fetchone()
 
-    def _column_default_sql(self, field):
-        if type(field) in (CharField, FileField, FilePathField, SlugField, UUIDField, TextField):
-            return "'%s'"
-        return '%s'
+                return 'DROP CONSTRAINT [{0}]'.format(result[0]), ()
 
-    def execute(self, sql, params=()):
-        if params:
-            return super().execute(sql % tuple(params))
-        return super().execute(sql)
+        return super(model, old_field, new_field, drop=False)
+
+    def prepare_default(self, value):
+        return self.quote_value(value)
 
     def quote_value(self, value):
+        if isinstance(value, str):
+            return "'{0}'".format(value.replace("'", "\'"))
         return str(value)
 
     def alter_db_table(self, model, old_db_table, new_db_table):
