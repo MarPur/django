@@ -1,5 +1,3 @@
-from django.db.models import CharField, FileField, FilePathField, SlugField, UUIDField, TextField
-
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.backends.ddl_references import Statement
 
@@ -9,7 +7,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
     sql_delete_table = 'DROP TABLE %(table)s'
     sql_delete_column = 'ALTER TABLE %(table)s DROP COLUMN %(column)s'
     sql_rename_table = "EXEC sp_rename '%(old_table)s', '%(new_table)s'"
- 
+
     def _alter_column_default_sql(self, model, old_field, new_field, drop=False):
         if drop:
             # In SQL Server, DEFAULT is a constraint, so we need to find the DEFAULT constraint

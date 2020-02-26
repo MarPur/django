@@ -14,6 +14,9 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_paramstyle_pyformat = False
     supports_subqueries_in_group_by = False
     requires_literal_defaults = True
+    can_introspect_duration_field = False
+    can_introspect_autofield = True
+    can_introspect_small_integer_field = True
     # SQL Server allows up to 2100 parameters passed, but we reserve a bit
     # in case we alter the SQL with additional parameters to make things work
     max_query_params = 2050

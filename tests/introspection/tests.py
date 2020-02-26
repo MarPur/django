@@ -1,4 +1,4 @@
-from unittest import mock, skipUnless
+from unittest import mock, skipUnless, skipIf
 
 from django.db import DatabaseError, connection
 from django.db.models import Index
@@ -88,6 +88,10 @@ class IntrospectionTests(TransactionTestCase):
             ],
         )
 
+    @skipIf(
+        connection.vendor == 'mssql',
+        'SQL Server uses UTF-16, not UTF-8, so columns can be bigger'
+    )
     def test_get_table_description_col_lengths(self):
         with connection.cursor() as cursor:
             desc = connection.introspection.get_table_description(cursor, Reporter._meta.db_table)

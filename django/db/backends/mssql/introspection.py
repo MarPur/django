@@ -1,10 +1,38 @@
+from collections import namedtuple
+
 from django.db.models import Index
 from django.db.backends.base.introspection import (
-    BaseDatabaseIntrospection, TableInfo,
+    BaseDatabaseIntrospection, FieldInfo as BaseFieldInfo, TableInfo,
 )
 
+FieldInfo = namedtuple('FieldInfo', BaseFieldInfo._fields + ('is_identity',))
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
+    data_types_reverse = {
+        'varbinary': 'BinaryField',
+        'bit': 'BooleanField',
+        'nvarchar': 'CharField',
+        'date': 'DateField',
+        'datetime2': 'DateTimeField',
+        'decimal': 'DecimalField',
+        'real': 'FloatField',
+        'int': 'IntegerField',
+        'bigint': 'BigIntegerField',
+        'smallint': 'SmallIntegerField',
+        'time': 'TimeField',
+    }
+
+    identity_data_types_reverse = {
+        'int': 'AutoField',
+        'bigint': 'BigAutoField',
+        'smallint': 'SmallAutoField',
+    }
+
+    def get_field_type(self, data_type, description):
+        if description.is_identity:
+            return self.identity_data_types_reverse[data_type]
+
+        return self.data_types_reverse[data_type]
 
     def get_table_list(self, cursor):
         cursor.execute("""
@@ -93,3 +121,31 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         for my_fieldname, other_table, other_field in constraints:
             relations[my_fieldname] = (other_field, other_table)
         return relations
+
+    def get_table_description(self, cursor, table_name):
+        results = cursor.execute('''
+            SELECT col.name AS [column], t.name AS type_name, COL_LENGTH(OBJECT_NAME(col.object_id), col.name) AS size,
+                col.precision, col.scale, col.is_nullable, c.definition AS constraint_expression, col.is_identity
+            FROM sys.columns col
+            INNER JOIN sys.types t ON t.system_type_id = col.system_type_id
+            LEFT JOIN sys.default_constraints c ON col.object_id = c.parent_object_id AND col.column_id = c.parent_column_id
+            WHERE OBJECT_NAME(col.object_id) = '{0}' AND t.name NOT IN ('sysname')
+            ORDER BY col.column_id
+        '''.format(table_name)).fetchall()
+
+        fields = []
+        for result in results:
+            fields.append(FieldInfo(
+                result[0],
+                result[1],
+                None,
+                result[2],
+                result[3],
+                result[4],
+                result[5],
+                result[6],
+                result[7]
+            ))
+
+        return fields
+
