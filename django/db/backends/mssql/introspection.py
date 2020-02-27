@@ -7,6 +7,7 @@ from django.db.backends.base.introspection import (
 
 FieldInfo = namedtuple('FieldInfo', BaseFieldInfo._fields + ('is_identity',))
 
+
 class DatabaseIntrospection(BaseDatabaseIntrospection):
     data_types_reverse = {
         'varbinary': 'BinaryField',
@@ -148,4 +149,9 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             ))
 
         return fields
+
+    def get_sequences(self, cursor, table_name, table_fields=()):
+        description = self.get_table_description(cursor, table_name)
+
+        return [{'table': table_name, 'column': i.name} for i in description if i.is_identity]
 
