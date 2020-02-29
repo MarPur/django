@@ -20,7 +20,9 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                     WHERE col.name = '{0}' AND OBJECT_NAME(c.parent_object_id) = '{1}'
                 '''.format(new_field.column, model._meta.db_table)).fetchone()
 
-                return 'DROP CONSTRAINT [{0}]'.format(result[0]), ()
+                if result:
+                    return 'DROP CONSTRAINT [{0}]'.format(result[0]), ()
+                return None, ()
 
         return super(model, old_field, new_field, drop=False)
 
