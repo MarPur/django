@@ -25,6 +25,8 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         return super(model, old_field, new_field, drop=False)
 
     def prepare_default(self, value):
+        if isinstance(value, bool):
+            return int(value)
         return self.quote_value(value)
 
     def quote_value(self, value):
