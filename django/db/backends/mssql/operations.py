@@ -155,7 +155,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             return True
         return False
 
-    def date_trunc_sql(self, lookup_type, field_name):
+    def date_trunc_sql(self, lookup_type, field_name, tzname=None):
+        # TODO Can we use `tzname` parameter here?
         if lookup_type == 'year':
             return 'CAST(DATEADD(DAY, -DATEPART(DAYOFYEAR, {0}) + 1, {0}) AS DATE)'.format(field_name)
         elif lookup_type == 'quarter':
@@ -275,7 +276,14 @@ class DatabaseOperations(BaseDatabaseOperations):
                 ORDER BY LEVEL DESC;
             '''.format(table=table_name, recursive=int(recursive), not_recursive=int(not recursive))).fetchall()
 
-    def sql_flush(self, style, tables, sequences, allow_cascade=False):
+    def sql_flush(self, style, tables, *, allow_cascade=False, reset_sequences=False):
+        # TODO: Implement reset_sequences:
+        #  1. copy data to a temp column without identity
+        #  2. drop column with identity
+        #  3. add new column with identity
+        #  4. copy data from temp column to new identity column
+        #  5. drop the temp column
+
         statements = []
 
         if not tables:
