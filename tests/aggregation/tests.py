@@ -1193,6 +1193,7 @@ class AggregateTestCase(TestCase):
             },
         ])
 
+    @skipUnlessDBFeature('supports_subqueries_in_aggregates')
     def test_aggregation_subquery_annotation_values_collision(self):
         books_rating_qs = Book.objects.filter(
             publisher=OuterRef('pk'),

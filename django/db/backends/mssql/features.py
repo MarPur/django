@@ -18,6 +18,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     can_introspect_autofield = True
     can_introspect_small_integer_field = True
     supports_boolean_expr_in_select_clause = False
+    supports_subqueries_in_aggregates = False
     # SQL Server allows up to 2100 parameters passed, but we reserve a bit
     # in case we alter the SQL with additional parameters to make things work
     max_query_params = 2050

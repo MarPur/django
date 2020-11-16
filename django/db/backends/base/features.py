@@ -63,6 +63,7 @@ class BaseDatabaseFeatures:
     # Is there a REAL datatype in addition to floats/doubles?
     has_real_datatype = False
     supports_subqueries_in_group_by = True
+    supports_subqueries_in_aggregates = True
 
     # Is there a true datatype for uuid?
     has_native_uuid_field = False
@@ -324,7 +325,7 @@ class BaseDatabaseFeatures:
     # Does it support primary key as a constraint only at table level
     # and not at column level?
     primary_key_as_table_constraint_only = False
-    
+
     # Does the ORDER BY need to be specified in order to use limit?
     requires_order_by_in_limit = False
 
