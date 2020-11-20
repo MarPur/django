@@ -43,10 +43,6 @@ class DatabaseOperations(BaseDatabaseOperations):
           DEFAULT VALUES
     '''
 
-    records_exists_wrapping_query = '''
-        SELECT CASE WHEN EXISTS ({query}) THEN 1 ELSE 0 END AS _exists
-    '''
-
     def quote_name(self, name):
         return '[{}]'.format(name)
 
@@ -83,9 +79,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         sql += 'VALUES ' + values_sql
 
         return sql
-
-    def result_exists_sql(self, query):
-        return self.records_exists_wrapping_query.format(query=query)
 
     def limit_offset_sql(self, low_mark, high_mark):
         fetch, offset = self._get_limit_offset_params(low_mark, high_mark)

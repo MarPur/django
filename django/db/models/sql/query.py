@@ -533,11 +533,12 @@ class Query(BaseExpression):
                 # Disable GROUP BY aliases to avoid orphaning references to the
                 # SELECT clause which is about to be cleared.
                 q.set_group_by(allow_aliases=False)
+
             q.clear_select_clause()
+            pk_column = q.model._meta.pk
+            q.add_select_col(pk_column.cached_col, pk_column.column)
         q.clear_ordering(True)
         q.set_limits(high=1)
-        q.add_extra({'a': 1}, None, None, None, None, None)
-        q.set_extra_mask(['a'])
         return q
 
     def has_results(self, using):

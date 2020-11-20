@@ -13,15 +13,7 @@ class SQLCompiler(compiler.SQLCompiler):
         return list(filter(lambda i: not isinstance(i, Subquery), expressions))
 
     def has_results(self):
-        pk_column = self.query.model._meta.pk
-
-        self.query.clear_limits()
-        self.query.clear_ordering(True)
-        self.query.add_select_col(pk_column.cached_col, pk_column.column)
-
         sql, params = self.as_sql()
-        sql = self.connection.ops.result_exists_sql(sql)
-
         cursor = self.connection.cursor()
 
         cursor.execute(sql, params)
@@ -29,7 +21,7 @@ class SQLCompiler(compiler.SQLCompiler):
         results = cursor.fetchone()
 
         # TODO Check if works with joins
-        return bool(results[0])
+        return results and len(results) > 0
 
 class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
     pass
